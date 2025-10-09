@@ -1,336 +1,347 @@
-# Описание сущностей базы данных системы управления аэропортом
+# Схема базы данных системы управления аэропортом
 
-## Список сущностей
+## Обзор
 
-### 1. Users (Пользователи)
-**Тип связи:** Один ко многим с другими сущностями
-**Описание:** Основная таблица пользователей системы
+База данных системы управления аэропортом предназначена для управления всеми аспектами работы аэропорта, включая рейсы, пассажиров, самолеты, экипаж, багаж и техническое обслуживание.
 
-### 2. Roles (Роли)
-**Тип связи:** Многие ко многим с Users
-**Описание:** Роли пользователей в системе
+## Структура базы данных
 
-### 3. User_Roles (Пользовательские роли)
-**Тип связи:** Промежуточная таблица для связи Users и Roles
-**Описание:** Связь пользователей с их ролями
+### Основные сущности
 
-### 4. Aircraft (Самолеты)
-**Тип связи:** Один ко многим с Flights
-**Описание:** Информация о самолетах
+#### 1. Users (Пользователи)
+Основная таблица пользователей системы (сотрудники аэропорта, пилоты, бортпроводники, техники).
 
-### 5. Flights (Рейсы)
-**Тип связи:** Один ко многим с Passengers, Tickets, Flight_Crew
-**Описание:** Информация о рейсах
+**Поля:**
+- `user_id` - Уникальный идентификатор пользователя (PRIMARY KEY)
+- `username` - Имя пользователя (UNIQUE)
+- `email` - Электронная почта (UNIQUE)
+- `password_hash` - Хеш пароля
+- `first_name` - Имя
+- `last_name` - Фамилия
+- `phone` - Номер телефона
+- `date_of_birth` - Дата рождения
+- `passport_number` - Номер паспорта (UNIQUE)
+- `created_at` - Дата создания записи
+- `updated_at` - Дата последнего обновления
+- `is_active` - Статус активности
 
-### 6. Passengers (Пассажиры)
-**Тип связи:** Один ко многим с Tickets, Baggage
-**Описание:** Информация о пассажирах
+#### 2. Roles (Роли)
+Роли пользователей в системе (администратор, менеджер, пилот, бортпроводник и т.д.).
 
-### 7. Tickets (Билеты)
-**Тип связи:** Многие к одному с Flights, Passengers
-**Описание:** Информация о билетах
+**Поля:**
+- `role_id` - Уникальный идентификатор роли (PRIMARY KEY)
+- `role_name` - Название роли (UNIQUE)
+- `description` - Описание роли
+- `permissions` - Права доступа (JSON)
+- `created_at` - Дата создания
 
-### 8. Terminals (Терминалы)
-**Тип связи:** Один ко многим с Gates
-**Описание:** Информация о терминалах аэропорта
+#### 3. User_Roles (Пользовательские роли)
+Связь пользователей с их ролями (многие ко многим).
 
-### 9. Gates (Гейты)
-**Тип связи:** Один ко многим с Flights
-**Описание:** Информация о гейтах
+**Поля:**
+- `user_role_id` - Уникальный идентификатор (PRIMARY KEY)
+- `user_id` - Ссылка на пользователя (FOREIGN KEY)
+- `role_id` - Ссылка на роль (FOREIGN KEY)
+- `assigned_at` - Дата назначения роли
+- `assigned_by` - Кто назначил роль (FOREIGN KEY)
 
-### 10. Baggage (Багаж)
-**Тип связи:** Многие к одному с Passengers
-**Описание:** Информация о багаже пассажиров
+#### 4. Aircraft_Models (Модели самолетов)
+Справочник моделей самолетов.
 
-### 11. Flight_Crew (Экипаж рейса)
-**Тип связи:** Многие к одному с Flights, Users
-**Описание:** Связь экипажа с рейсами
+**Поля:**
+- `model_id` - Уникальный идентификатор модели (PRIMARY KEY)
+- `model_name` - Название модели
+- `manufacturer` - Производитель
+- `capacity` - Вместимость пассажиров
+- `max_range` - Максимальная дальность полета
 
-### 12. Airports (Аэропорты)
-**Тип связи:** Один ко многим с Flights (аэропорт отправления и прибытия)
-**Описание:** Информация об аэропортах
+#### 5. Aircraft (Самолеты)
+Информация о конкретных самолетах.
 
-### 13. Routes (Маршруты)
-**Тип связи:** Один ко многим с Flights
-**Описание:** Информация о маршрутах
+**Поля:**
+- `aircraft_id` - Уникальный идентификатор самолета (PRIMARY KEY)
+- `registration_number` - Регистрационный номер (UNIQUE)
+- `model_id` - Ссылка на модель (FOREIGN KEY)
+- `model_name` - Название модели (денормализация)
+- `manufacturer` - Производитель (денормализация)
+- `capacity` - Вместимость (денормализация)
+- `max_range` - Максимальная дальность (денормализация)
+- `status` - Статус самолета (active, maintenance, retired)
+- `purchase_date` - Дата покупки
+- `last_maintenance` - Дата последнего обслуживания
+- `next_maintenance` - Дата следующего обслуживания
 
-### 14. Maintenance_Records (Записи технического обслуживания)
-**Тип связи:** Один ко многим с Aircraft
-**Описание:** Записи о техническом обслуживании самолетов
+#### 6. Cities (Города)
+Справочник городов и стран.
 
-### 15. Audit_Logs (Журнал аудита)
-**Тип связи:** Один ко многим с Users
-**Описание:** Журнал действий пользователей
+**Поля:**
+- `city_id` - Уникальный идентификатор города (PRIMARY KEY)
+- `city_name` - Название города
+- `country` - Страна
+- `timezone` - Часовой пояс
 
-## Типы связей в системе
+#### 7. Airports (Аэропорты)
+Информация об аэропортах.
 
-1. **Один к одному (1:1):** Нет прямых связей 1:1 в данной схеме
-2. **Один ко многим (1:M):** 
-   - Users → Audit_Logs
-   - Aircraft → Flights
-   - Flights → Passengers, Tickets, Flight_Crew
-   - Passengers → Tickets, Baggage
-   - Terminals → Gates
-   - Gates → Flights
-   - Airports → Flights (отправление и прибытие)
-   - Routes → Flights
-   - Aircraft → Maintenance_Records
+**Поля:**
+- `airport_id` - Уникальный идентификатор аэропорта (PRIMARY KEY)
+- `iata_code` - Код IATA (UNIQUE)
+- `icao_code` - Код ICAO (UNIQUE)
+- `airport_name` - Название аэропорта
+- `city_id` - Ссылка на город (FOREIGN KEY)
+- `latitude` - Широта
+- `longitude` - Долгота
 
-3. **Многие ко многим (M:M):**
-   - Users ↔ Roles (через User_Roles)
-   - Flights ↔ Users (через Flight_Crew)
+#### 8. Routes (Маршруты)
+Маршруты между аэропортами.
 
-4. **Многие к одному (M:1):**
-   - Tickets → Flights, Passengers
-   - Baggage → Passengers
-   - Flight_Crew → Flights, Users
-   - Flights → Aircraft, Gates, Airports, Routes
-   - Maintenance_Records → Aircraft
+**Поля:**
+- `route_id` - Уникальный идентификатор маршрута (PRIMARY KEY)
+- `route_name` - Название маршрута
+- `departure_airport_id` - Аэропорт отправления (FOREIGN KEY)
+- `arrival_airport_id` - Аэропорт прибытия (FOREIGN KEY)
+- `distance` - Расстояние в километрах
+- `duration` - Продолжительность полета
+- `status` - Статус маршрута (active, inactive)
 
-## Детальное описание сущностей
+#### 9. Terminals (Терминалы)
+Терминалы аэропорта.
 
-### 1. Users (Пользователи)
-| Поле | Тип | Ограничения | Связи |
-|------|-----|-------------|-------|
-| user_id | INTEGER | PRIMARY KEY, NOT NULL, AUTO_INCREMENT | - |
-| username | VARCHAR(50) | UNIQUE, NOT NULL | - |
-| email | VARCHAR(100) | UNIQUE, NOT NULL | - |
-| password_hash | VARCHAR(255) | NOT NULL | - |
-| first_name | VARCHAR(50) | NOT NULL | - |
-| last_name | VARCHAR(50) | NOT NULL | - |
-| phone | VARCHAR(20) | - | - |
-| date_of_birth | DATE | - | - |
-| passport_number | VARCHAR(20) | UNIQUE | - |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | - |
-| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | - |
-| is_active | BOOLEAN | DEFAULT TRUE | - |
+**Поля:**
+- `terminal_id` - Уникальный идентификатор терминала (PRIMARY KEY)
+- `terminal_name` - Название терминала
+- `terminal_code` - Код терминала (UNIQUE)
+- `capacity` - Вместимость терминала
+- `status` - Статус терминала (active, maintenance, closed)
+- `opening_hours` - Часы работы
 
-**Связи:**
-- Один ко многим с Audit_Logs
-- Многие ко многим с Roles через User_Roles
-- Один ко многим с Flight_Crew
+#### 10. Gates (Гейты)
+Гейты в терминалах.
 
-### 2. Roles (Роли)
-| Поле | Тип | Ограничения | Связи |
-|------|-----|-------------|-------|
-| role_id | INTEGER | PRIMARY KEY, NOT NULL, AUTO_INCREMENT | - |
-| role_name | VARCHAR(50) | UNIQUE, NOT NULL | - |
-| description | TEXT | - | - |
-| permissions | JSON | - | - |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | - |
+**Поля:**
+- `gate_id` - Уникальный идентификатор гейта (PRIMARY KEY)
+- `terminal_id` - Ссылка на терминал (FOREIGN KEY)
+- `gate_number` - Номер гейта
+- `status` - Статус гейта (available, occupied, maintenance)
+- `capacity` - Вместимость гейта
 
-**Связи:**
-- Многие ко многим с Users через User_Roles
+#### 11. Flights (Рейсы)
+Информация о рейсах.
 
-### 3. User_Roles (Пользовательские роли)
-| Поле | Тип | Ограничения | Связи |
-|------|-----|-------------|-------|
-| user_role_id | INTEGER | PRIMARY KEY, NOT NULL, AUTO_INCREMENT | - |
-| user_id | INTEGER | NOT NULL, FOREIGN KEY | → Users(user_id) |
-| role_id | INTEGER | NOT NULL, FOREIGN KEY | → Roles(role_id) |
-| assigned_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | - |
-| assigned_by | INTEGER | FOREIGN KEY | → Users(user_id) |
+**Поля:**
+- `flight_id` - Уникальный идентификатор рейса (PRIMARY KEY)
+- `flight_number` - Номер рейса (UNIQUE)
+- `aircraft_id` - Ссылка на самолет (FOREIGN KEY)
+- `route_id` - Ссылка на маршрут (FOREIGN KEY)
+- `departure_airport_id` - Аэропорт отправления (FOREIGN KEY, денормализация)
+- `arrival_airport_id` - Аэропорт прибытия (FOREIGN KEY, денормализация)
+- `gate_id` - Ссылка на гейт (FOREIGN KEY)
+- `scheduled_departure` - Плановое время отправления
+- `scheduled_arrival` - Плановое время прибытия
+- `actual_departure` - Фактическое время отправления
+- `actual_arrival` - Фактическое время прибытия
+- `status` - Статус рейса (scheduled, boarding, departed, arrived, cancelled, delayed)
+- `price` - Цена билета
 
-**Связи:**
-- Многие к одному с Users (user_id)
-- Многие к одному с Users (assigned_by)
-- Многие к одному с Roles
+#### 12. Passengers (Пассажиры)
+Информация о пассажирах.
 
-### 4. Aircraft (Самолеты)
-| Поле | Тип | Ограничения | Связи |
-|------|-----|-------------|-------|
-| aircraft_id | INTEGER | PRIMARY KEY, NOT NULL, AUTO_INCREMENT | - |
-| registration_number | VARCHAR(20) | UNIQUE, NOT NULL | - |
-| model | VARCHAR(50) | NOT NULL | - |
-| manufacturer | VARCHAR(50) | NOT NULL | - |
-| capacity | INTEGER | NOT NULL, CHECK (capacity > 0) | - |
-| max_range | INTEGER | NOT NULL, CHECK (max_range > 0) | - |
-| status | ENUM('active', 'maintenance', 'retired') | DEFAULT 'active' | - |
-| purchase_date | DATE | - | - |
-| last_maintenance | DATE | - | - |
-| next_maintenance | DATE | - | - |
+**Поля:**
+- `passenger_id` - Уникальный идентификатор пассажира (PRIMARY KEY)
+- `user_id` - Ссылка на пользователя (FOREIGN KEY, опционально)
+- `first_name` - Имя
+- `last_name` - Фамилия
+- `passport_number` - Номер паспорта
+- `nationality` - Национальность
+- `date_of_birth` - Дата рождения
+- `phone` - Номер телефона
+- `email` - Электронная почта
+- `special_requirements` - Особые требования
+- `created_at` - Дата создания записи
 
-**Связи:**
-- Один ко многим с Flights
-- Один ко многим с Maintenance_Records
+#### 13. Tickets (Билеты)
+Билеты пассажиров на рейсы.
 
-### 5. Flights (Рейсы)
-| Поле | Тип | Ограничения | Связи |
-|------|-----|-------------|-------|
-| flight_id | INTEGER | PRIMARY KEY, NOT NULL, AUTO_INCREMENT | - |
-| flight_number | VARCHAR(10) | UNIQUE, NOT NULL | - |
-| aircraft_id | INTEGER | NOT NULL, FOREIGN KEY | → Aircraft(aircraft_id) |
-| departure_airport_id | INTEGER | NOT NULL, FOREIGN KEY | → Airports(airport_id) |
-| arrival_airport_id | INTEGER | NOT NULL, FOREIGN KEY | → Airports(airport_id) |
-| route_id | INTEGER | NOT NULL, FOREIGN KEY | → Routes(route_id) |
-| gate_id | INTEGER | FOREIGN KEY | → Gates(gate_id) |
-| scheduled_departure | DATETIME | NOT NULL | - |
-| scheduled_arrival | DATETIME | NOT NULL | - |
-| actual_departure | DATETIME | - | - |
-| actual_arrival | DATETIME | - | - |
-| status | ENUM('scheduled', 'boarding', 'departed', 'arrived', 'cancelled', 'delayed') | DEFAULT 'scheduled' | - |
-| price | DECIMAL(10,2) | NOT NULL, CHECK (price >= 0) | - |
+**Поля:**
+- `ticket_id` - Уникальный идентификатор билета (PRIMARY KEY)
+- `ticket_number` - Номер билета (UNIQUE)
+- `flight_id` - Ссылка на рейс (FOREIGN KEY)
+- `passenger_id` - Ссылка на пассажира (FOREIGN KEY)
+- `seat_number` - Номер места
+- `class` - Класс обслуживания (economy, business, first)
+- `price` - Цена билета
+- `status` - Статус билета (active, cancelled, used, refunded)
+- `purchase_date` - Дата покупки
+- `check_in_time` - Время регистрации
 
-**Связи:**
-- Многие к одному с Aircraft
-- Многие к одному с Airports (отправление и прибытие)
-- Многие к одному с Routes
-- Многие к одному с Gates
-- Один ко многим с Passengers, Tickets, Flight_Crew
+#### 14. Baggage (Багаж)
+Багаж пассажиров.
 
-### 6. Passengers (Пассажиры)
-| Поле | Тип | Ограничения | Связи |
-|------|-----|-------------|-------|
-| passenger_id | INTEGER | PRIMARY KEY, NOT NULL, AUTO_INCREMENT | - |
-| user_id | INTEGER | FOREIGN KEY | → Users(user_id) |
-| first_name | VARCHAR(50) | NOT NULL | - |
-| last_name | VARCHAR(50) | NOT NULL | - |
-| passport_number | VARCHAR(20) | NOT NULL | - |
-| nationality | VARCHAR(50) | NOT NULL | - |
-| date_of_birth | DATE | NOT NULL | - |
-| phone | VARCHAR(20) | - | - |
-| email | VARCHAR(100) | - | - |
-| special_requirements | TEXT | - | - |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | - |
+**Поля:**
+- `baggage_id` - Уникальный идентификатор багажа (PRIMARY KEY)
+- `passenger_id` - Ссылка на пассажира (FOREIGN KEY)
+- `flight_id` - Ссылка на рейс (FOREIGN KEY)
+- `baggage_tag` - Тег багажа (UNIQUE)
+- `weight` - Вес багажа
+- `status` - Статус багажа (checked_in, loaded, unloaded, delivered, lost)
+- `check_in_time` - Время регистрации багажа
+- `delivery_time` - Время доставки багажа
 
-**Связи:**
-- Многие к одному с Users (опционально)
-- Один ко многим с Tickets, Baggage
+#### 15. Flight_Crew (Экипаж рейса)
+Назначение экипажа на рейсы.
 
-### 7. Tickets (Билеты)
-| Поле | Тип | Ограничения | Связи |
-|------|-----|-------------|-------|
-| ticket_id | INTEGER | PRIMARY KEY, NOT NULL, AUTO_INCREMENT | - |
-| ticket_number | VARCHAR(20) | UNIQUE, NOT NULL | - |
-| flight_id | INTEGER | NOT NULL, FOREIGN KEY | → Flights(flight_id) |
-| passenger_id | INTEGER | NOT NULL, FOREIGN KEY | → Passengers(passenger_id) |
-| seat_number | VARCHAR(10) | - | - |
-| class | ENUM('economy', 'business', 'first') | DEFAULT 'economy' | - |
-| price | DECIMAL(10,2) | NOT NULL, CHECK (price >= 0) | - |
-| status | ENUM('active', 'cancelled', 'used', 'refunded') | DEFAULT 'active' | - |
-| purchase_date | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | - |
-| check_in_time | TIMESTAMP | - | - |
+**Поля:**
+- `crew_id` - Уникальный идентификатор назначения (PRIMARY KEY)
+- `flight_id` - Ссылка на рейс (FOREIGN KEY)
+- `user_id` - Ссылка на пользователя (FOREIGN KEY)
+- `position` - Должность (pilot, co_pilot, flight_engineer, flight_attendant, purser)
+- `assigned_at` - Дата назначения
 
-**Связи:**
-- Многие к одному с Flights
-- Многие к одному с Passengers
+#### 16. Maintenance_Records (Записи технического обслуживания)
+Записи о техническом обслуживании самолетов.
 
-### 8. Terminals (Терминалы)
-| Поле | Тип | Ограничения | Связи |
-|------|-----|-------------|-------|
-| terminal_id | INTEGER | PRIMARY KEY, NOT NULL, AUTO_INCREMENT | - |
-| terminal_name | VARCHAR(50) | NOT NULL | - |
-| terminal_code | VARCHAR(10) | UNIQUE, NOT NULL | - |
-| capacity | INTEGER | NOT NULL, CHECK (capacity > 0) | - |
-| status | ENUM('active', 'maintenance', 'closed') | DEFAULT 'active' | - |
-| opening_hours | VARCHAR(100) | - | - |
+**Поля:**
+- `maintenance_id` - Уникальный идентификатор записи (PRIMARY KEY)
+- `aircraft_id` - Ссылка на самолет (FOREIGN KEY)
+- `maintenance_type` - Тип обслуживания (routine, repair, inspection, overhaul)
+- `description` - Описание работ
+- `start_date` - Дата начала работ
+- `end_date` - Дата окончания работ
+- `cost` - Стоимость работ
+- `technician_id` - Ссылка на техника (FOREIGN KEY)
+- `status` - Статус работ (scheduled, in_progress, completed, cancelled)
 
-**Связи:**
-- Один ко многим с Gates
+#### 17. Audit_Logs (Журнал аудита)
+Журнал действий пользователей в системе.
 
-### 9. Gates (Гейты)
-| Поле | Тип | Ограничения | Связи |
-|------|-----|-------------|-------|
-| gate_id | INTEGER | PRIMARY KEY, NOT NULL, AUTO_INCREMENT | - |
-| terminal_id | INTEGER | NOT NULL, FOREIGN KEY | → Terminals(terminal_id) |
-| gate_number | VARCHAR(10) | NOT NULL | - |
-| status | ENUM('available', 'occupied', 'maintenance') | DEFAULT 'available' | - |
-| capacity | INTEGER | NOT NULL, CHECK (capacity > 0) | - |
+**Поля:**
+- `log_id` - Уникальный идентификатор записи (PRIMARY KEY)
+- `user_id` - Ссылка на пользователя (FOREIGN KEY)
+- `action` - Действие (INSERT, UPDATE, DELETE)
+- `table_name` - Название таблицы
+- `record_id` - ID записи
+- `old_values` - Старые значения (JSON)
+- `new_values` - Новые значения (JSON)
+- `ip_address` - IP адрес
+- `user_agent` - User Agent
+- `timestamp` - Время действия
 
-**Связи:**
-- Многие к одному с Terminals
-- Один ко многим с Flights
+## Связи между таблицами
 
-### 10. Baggage (Багаж)
-| Поле | Тип | Ограничения | Связи |
-|------|-----|-------------|-------|
-| baggage_id | INTEGER | PRIMARY KEY, NOT NULL, AUTO_INCREMENT | - |
-| passenger_id | INTEGER | NOT NULL, FOREIGN KEY | → Passengers(passenger_id) |
-| flight_id | INTEGER | NOT NULL, FOREIGN KEY | → Flights(flight_id) |
-| baggage_tag | VARCHAR(20) | UNIQUE, NOT NULL | - |
-| weight | DECIMAL(5,2) | NOT NULL, CHECK (weight > 0) | - |
-| status | ENUM('checked_in', 'loaded', 'unloaded', 'delivered', 'lost') | DEFAULT 'checked_in' | - |
-| check_in_time | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | - |
-| delivery_time | TIMESTAMP | - | - |
+### Основные связи:
 
-**Связи:**
-- Многие к одному с Passengers
-- Многие к одному с Flights
+1. **Users ↔ Roles** (многие ко многим через User_Roles)
+2. **Aircraft_Models → Aircraft** (один ко многим)
+3. **Cities → Airports** (один ко многим)
+4. **Airports → Routes** (один ко многим, отправление и прибытие)
+5. **Routes → Flights** (один ко многим)
+6. **Aircraft → Flights** (один ко многим)
+7. **Terminals → Gates** (один ко многим)
+8. **Gates → Flights** (один ко многим)
+9. **Users → Passengers** (один ко многим, опционально)
+10. **Passengers → Tickets** (один ко многим)
+11. **Flights → Tickets** (один ко многим)
+12. **Passengers → Baggage** (один ко многим)
+13. **Flights → Baggage** (один ко многим)
+14. **Users → Flight_Crew** (один ко многим)
+15. **Flights → Flight_Crew** (один ко многим)
+16. **Aircraft → Maintenance_Records** (один ко многим)
+17. **Users → Maintenance_Records** (один ко многим, техники)
+18. **Users → Audit_Logs** (один ко многим)
 
-### 11. Flight_Crew (Экипаж рейса)
-| Поле | Тип | Ограничения | Связи |
-|------|-----|-------------|-------|
-| crew_id | INTEGER | PRIMARY KEY, NOT NULL, AUTO_INCREMENT | - |
-| flight_id | INTEGER | NOT NULL, FOREIGN KEY | → Flights(flight_id) |
-| user_id | INTEGER | NOT NULL, FOREIGN KEY | → Users(user_id) |
-| position | ENUM('pilot', 'co_pilot', 'flight_engineer', 'flight_attendant', 'purser') | NOT NULL | - |
-| assigned_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | - |
+## Индексы
 
-**Связи:**
-- Многие к одному с Flights
-- Многие к одному с Users
+### Основные индексы:
+- Индексы по первичным ключам (автоматически)
+- Индексы по внешним ключам
+- Индексы по уникальным полям
+- Составные индексы для оптимизации запросов
 
-### 12. Airports (Аэропорты)
-| Поле | Тип | Ограничения | Связи |
-|------|-----|-------------|-------|
-| airport_id | INTEGER | PRIMARY KEY, NOT NULL, AUTO_INCREMENT | - |
-| iata_code | VARCHAR(3) | UNIQUE, NOT NULL | - |
-| icao_code | VARCHAR(4) | UNIQUE, NOT NULL | - |
-| airport_name | VARCHAR(100) | NOT NULL | - |
-| city | VARCHAR(50) | NOT NULL | - |
-| country | VARCHAR(50) | NOT NULL | - |
-| timezone | VARCHAR(50) | NOT NULL | - |
-| latitude | DECIMAL(10,8) | - | - |
-| longitude | DECIMAL(11,8) | - | - |
+### Специальные индексы:
+- Индексы по датам для временных запросов
+- Индексы по статусам для фильтрации
+- Индексы по географическим координатам
 
-**Связи:**
-- Один ко многим с Flights (отправление и прибытие)
+## Ограничения
 
-### 13. Routes (Маршруты)
-| Поле | Тип | Ограничения | Связи |
-|------|-----|-------------|-------|
-| route_id | INTEGER | PRIMARY KEY, NOT NULL, AUTO_INCREMENT | - |
-| route_name | VARCHAR(100) | NOT NULL | - |
-| departure_airport_id | INTEGER | NOT NULL, FOREIGN KEY | → Airports(airport_id) |
-| arrival_airport_id | INTEGER | NOT NULL, FOREIGN KEY | → Airports(airport_id) |
-| distance | INTEGER | NOT NULL, CHECK (distance > 0) | - |
-| duration | TIME | NOT NULL | - |
-| status | ENUM('active', 'inactive') | DEFAULT 'active' | - |
+### Проверочные ограничения (CHECK):
+- Формат email адресов
+- Формат телефонных номеров
+- Формат номеров паспортов
+- Возраст пассажиров (не менее 0 лет)
+- Координаты аэропортов (широта: -90 до 90, долгота: -180 до 180)
+- Положительные значения для веса, цены, расстояния
+- Валидные статусы для всех ENUM полей
 
-**Связи:**
-- Многие к одному с Airports (отправление и прибытие)
-- Один ко многим с Flights
+### Уникальные ограничения:
+- Уникальные комбинации полей (например, модель + производитель)
+- Уникальные номера рейсов, билетов, багажа
+- Уникальные коды аэропортов (IATA, ICAO)
 
-### 14. Maintenance_Records (Записи технического обслуживания)
-| Поле | Тип | Ограничения | Связи |
-|------|-----|-------------|-------|
-| maintenance_id | INTEGER | PRIMARY KEY, NOT NULL, AUTO_INCREMENT | - |
-| aircraft_id | INTEGER | NOT NULL, FOREIGN KEY | → Aircraft(aircraft_id) |
-| maintenance_type | ENUM('routine', 'repair', 'inspection', 'overhaul') | NOT NULL | - |
-| description | TEXT | NOT NULL | - |
-| start_date | DATE | NOT NULL | - |
-| end_date | DATE | - | - |
-| cost | DECIMAL(10,2) | CHECK (cost >= 0) | - |
-| technician_id | INTEGER | FOREIGN KEY | → Users(user_id) |
-| status | ENUM('scheduled', 'in_progress', 'completed', 'cancelled') | DEFAULT 'scheduled' | - |
+### Внешние ключи:
+- Каскадное удаление для зависимых записей
+- Ограничение удаления для справочных данных
+- Установка NULL для опциональных связей
 
-**Связи:**
-- Многие к одному с Aircraft
-- Многие к одному с Users (техник)
+## Триггеры
 
-### 15. Audit_Logs (Журнал аудита)
-| Поле | Тип | Ограничения | Связи |
-|------|-----|-------------|-------|
-| log_id | INTEGER | PRIMARY KEY, NOT NULL, AUTO_INCREMENT | - |
-| user_id | INTEGER | FOREIGN KEY | → Users(user_id) |
-| action | VARCHAR(100) | NOT NULL | - |
-| table_name | VARCHAR(50) | NOT NULL | - |
-| record_id | INTEGER | - | - |
-| old_values | JSON | - | - |
-| new_values | JSON | - | - |
-| ip_address | VARCHAR(45) | - | - |
-| user_agent | TEXT | - | - |
-| timestamp | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | - |
+### Автоматические триггеры:
+1. **Обновление временных меток** - автоматическое обновление `updated_at`
+2. **Синхронизация денормализованных данных** - обновление данных самолета при изменении модели
+3. **Аудит изменений** - автоматическое логирование изменений в критических таблицах
 
-**Связи:**
-- Многие к одному с Users
+## Представления (Views)
+
+### Основные представления:
+1. **flight_details** - детальная информация о рейсах с аэропортами и самолетами
+2. **flight_statistics** - статистика рейсов по дням
+3. **passenger_ticket_info** - информация о пассажирах с их билетами
+
+## Функции
+
+### Пользовательские функции:
+1. **check_seat_availability()** - проверка доступности места
+2. **calculate_flight_load()** - расчет загрузки рейса
+3. **search_flights()** - поиск рейсов по маршруту и дате
+
+## Права доступа
+
+### Роли:
+1. **airport_admin** - полные права администратора
+2. **airport_reader** - права только на чтение
+3. **airport_operator** - права на чтение, вставку и обновление
+
+## Особенности реализации
+
+### Денормализация:
+- Характеристики самолета денормализованы для быстрого доступа
+- Аэропорты отправления и прибытия денормализованы в таблице Flights
+
+### Производительность:
+- Индексы оптимизированы для типичных запросов
+- Составные индексы для сложных операций
+- Представления для упрощения запросов
+
+### Целостность данных:
+- Триггеры для поддержания консистентности
+- Ограничения для валидации данных
+- Аудит для отслеживания изменений
+
+## Статистика
+
+### Количество таблиц: 17
+### Количество индексов: 25+
+### Количество триггеров: 8
+### Количество представлений: 3
+### Количество функций: 3
+
+## Заключение
+
+База данных системы управления аэропортом представляет собой комплексную систему, охватывающую все аспекты работы аэропорта. Схема спроектирована с учетом требований производительности, целостности данных и масштабируемости.
+
+Основные принципы проектирования:
+- Нормализация до 3НФ с обоснованной денормализацией
+- Полная ссылочная целостность
+- Автоматический аудит изменений
+- Оптимизация для типичных операций
+- Поддержка европейских данных и маршрутов
