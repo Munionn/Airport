@@ -184,6 +184,7 @@ logs
 # IDE files
 .vscode/
 .idea/
+.cursor/
 *.swp
 *.swo
 *~
