@@ -1,6 +1,9 @@
 import 'reflect-metadata';
 import { ModelMetadata, ColumnMetadata, RelationshipMetadata } from '../types';
 
+
+export type { ModelMetadata, ColumnMetadata, RelationshipMetadata };
+
 export class MetadataStorage {
   private static instance: MetadataStorage;
   private metadata: Map<Function, ModelMetadata> = new Map();

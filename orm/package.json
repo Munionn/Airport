@@ -7,6 +7,9 @@
     "build": "tsc",
     "dev": "ts-node src/index.ts",
     "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false",
     "migrate:run": "ts-node src/cli/migrate.ts run",
     "migrate:rollback": "ts-node src/cli/migrate.ts rollback",
     "migrate:generate": "ts-node src/cli/migrate.ts generate"

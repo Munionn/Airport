@@ -4,6 +4,8 @@
 export { Connection } from './core/Connection';
 export { MetadataStorage, metadataStorage } from './core/MetadataStorage';
 export { Schema } from './core/Schema';
+export { QueryBuilder } from './core/QueryBuilder';
+export { Model } from './core/Model';
 export { Table } from './decorators/Table';
 export { Column } from './decorators/Column';
 export { PrimaryKey } from './decorators/PrimaryKey';
