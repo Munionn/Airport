@@ -11,6 +11,14 @@ import { AircraftModule } from './aircraft/aircraft.module';
 import { CitiesModule } from './cities/cities.module';
 import { AirportsModule } from './airports/airports.module';
 import { RoutesModule } from './routes/routes.module';
+import { TerminalsModule } from './terminals/terminals.module';
+import { BaggageModule } from './baggage/baggage.module';
+import { FlightCrewModule } from './flight-crew/flight-crew.module';
+import { MaintenanceModule } from './maintenance/maintenance.module';
+import { AuditModule } from './audit/audit.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { ReportsModule } from './reports/reports.module';
+import { ServicesModule } from './services/services.module';
 
 @Module({
   imports: [
@@ -24,6 +32,14 @@ import { RoutesModule } from './routes/routes.module';
     CitiesModule,
     AirportsModule,
     RoutesModule,
+    TerminalsModule,
+    BaggageModule,
+        FlightCrewModule,
+        MaintenanceModule,
+        AuditModule,
+        AnalyticsModule,
+        ReportsModule,
+        ServicesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

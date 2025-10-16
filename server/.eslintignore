@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+dist/
+build/
+
+# Generated files
+*.d.ts
+*.js.map
+
+# Coverage reports
+coverage/
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Database files
+*.sqlite
+*.db
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
