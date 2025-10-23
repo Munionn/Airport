@@ -10,7 +10,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { FlightOperationsService } from './flight-operations.service';
-import {
+import type {
   RegisterPassengerForFlightDto,
   CancelFlightDto,
   SearchFlightsDto,

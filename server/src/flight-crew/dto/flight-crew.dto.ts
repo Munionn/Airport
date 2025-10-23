@@ -1,5 +1,5 @@
-import { IsOptional, IsString, IsNumber, IsEnum, Type } from 'class-validator';
-import { Type as TransformType } from 'class-transformer';
+import { IsOptional, IsString, IsNumber, IsEnum } from 'class-validator';
+import { Type } from 'class-transformer';
 import { PaginationDto } from '../../shared/dto/base.dto';
 import { CrewPosition } from '../../shared/enums';
 

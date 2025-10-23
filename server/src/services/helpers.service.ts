@@ -342,12 +342,14 @@ export class HelperFunctionsService {
    */
   formatDate(date: Date, format: 'short' | 'long' | 'time' = 'short'): string {
     const options: Intl.DateTimeFormatOptions = {
-      short: { year: 'numeric', month: 'short', day: 'numeric' },
-      long: { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' },
-      time: { hour: '2-digit', minute: '2-digit', hour12: true },
+      year: 'numeric',
+      month: format === 'short' ? 'short' : 'long',
+      day: 'numeric',
+      ...(format === 'long' && { weekday: 'long' }),
+      ...(format === 'time' && { hour: '2-digit', minute: '2-digit', hour12: true }),
     };
 
-    return new Intl.DateTimeFormat('en-US', options[format]).format(date);
+    return new Intl.DateTimeFormat('en-US', options).format(date);
   }
 
   /**

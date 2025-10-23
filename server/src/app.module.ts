@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 import { SharedModule } from './shared/shared.module';
 import { FlightsModule } from './flights/flights.module';
 import { PassengersModule } from './passengers/passengers.module';
@@ -24,6 +25,7 @@ import { ServicesModule } from './services/services.module';
   imports: [
     DatabaseModule,
     UsersModule,
+    AuthModule,
     SharedModule,
     FlightsModule,
     PassengersModule,

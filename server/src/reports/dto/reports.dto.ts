@@ -1,6 +1,6 @@
-import { IsOptional, IsString, IsNumber, IsEnum, Type } from 'class-validator';
-import { Type as TransformType } from 'class-transformer';
-import { PaginationDto } from '../shared/dto/base.dto';
+import { IsOptional, IsString, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
+import { PaginationDto } from '../../shared/dto/base.dto';
 
 export class ReportQueryDto extends PaginationDto {
   @IsOptional()
@@ -138,12 +138,7 @@ export class RevenueReportResponseDto {
   };
 }
 
-export class AirportStatisticsReportDto extends ReportQueryDto {
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  airport_id?: number;
-}
+export class AirportStatisticsReportDto extends ReportQueryDto {}
 
 export class AirportStatisticsReportResponseDto {
   report_id: string;

@@ -36,7 +36,7 @@ export class ReportsController {
   @Post('airport-statistics')
   @HttpCode(HttpStatus.OK)
   generateAirportStatisticsReport(@Body() reportDto: AirportStatisticsReportDto) {
-    return this.reportsService.generateAirportStatisticsReport(reportDto);
+    return this.reportsService.generateFlightStatisticsReport(reportDto);
   }
 
   @Post('european-passengers')
