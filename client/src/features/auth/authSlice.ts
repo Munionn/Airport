@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { User, Role, AuthState, LoginCredentials } from '../../types';
-import { authApi } from '../../api';
+import { authApi } from '../../api/authApi';
 
 const initialState: AuthState = {
   user: null,
@@ -15,10 +15,13 @@ export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
+      console.log('🔄 Logging in user:', credentials.email);
       const response = await authApi.login(credentials);
+      console.log('✅ Login successful:', response.data);
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Login failed');
+      console.error('❌ Login failed:', error);
+      return rejectWithValue(error.response?.data?.message || error.message || 'Login failed');
     }
   }
 );

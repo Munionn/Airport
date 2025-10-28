@@ -36,6 +36,9 @@ export const FlightForm: React.FC<FlightFormProps> = ({
     { value: 1, label: 'Boeing 737-800 (N123AB)' },
     { value: 2, label: 'Airbus A320 (N456CD)' },
     { value: 3, label: 'Boeing 777-300ER (N789EF)' },
+    { value: 4, label: 'Airbus A350-900 (N101GH)' },
+    { value: 5, label: 'Boeing 787-9 Dreamliner (N202IJ)' },
+    { value: 6, label: 'Airbus A380-800 (N303KL)' },
   ];
 
   const routeOptions = [
@@ -43,6 +46,12 @@ export const FlightForm: React.FC<FlightFormProps> = ({
     { value: 2, label: 'LAX → JFK (Los Angeles to New York)' },
     { value: 3, label: 'JFK → LHR (New York to London)' },
     { value: 4, label: 'LHR → JFK (London to New York)' },
+    { value: 5, label: 'CDG → JFK (Paris to New York)' },
+    { value: 6, label: 'JFK → CDG (New York to Paris)' },
+    { value: 7, label: 'LAX → LHR (Los Angeles to London)' },
+    { value: 8, label: 'LHR → LAX (London to Los Angeles)' },
+    { value: 9, label: 'DXB → JFK (Dubai to New York)' },
+    { value: 10, label: 'JFK → DXB (New York to Dubai)' },
   ];
 
   useEffect(() => {
@@ -56,13 +65,24 @@ export const FlightForm: React.FC<FlightFormProps> = ({
         price: typeof flight.price === 'number' ? flight.price : Number(flight.price),
       });
     } else {
+      // Mock data for creating new flight
+      const now = new Date();
+      const departureTime = new Date(now.getTime() + 2 * 60 * 60 * 1000); // +2 hours
+      const arrivalTime = new Date(now.getTime() + 6 * 60 * 60 * 1000); // +6 hours
+      
+      // Generate random flight number
+      const airlines = ['AA', 'UA', 'DL', 'WN', 'BA', 'LH', 'AF', 'SU'];
+      const randomAirline = airlines[Math.floor(Math.random() * airlines.length)];
+      const randomNumber = Math.floor(Math.random() * 900) + 100; // 100-999
+      const flightNumber = `${randomAirline}${randomNumber}`;
+      
       setFormData({
-        flight_number: '',
-        aircraft_id: 0,
-        route_id: 0,
-        scheduled_departure: '',
-        scheduled_arrival: '',
-        price: 0,
+        flight_number: flightNumber,
+        aircraft_id: Math.floor(Math.random() * 6) + 1, // Random aircraft 1-6
+        route_id: Math.floor(Math.random() * 10) + 1, // Random route 1-10
+        scheduled_departure: departureTime.toISOString(),
+        scheduled_arrival: arrivalTime.toISOString(),
+        price: Math.floor(Math.random() * 500) + 100, // Random price $100-$600
       });
     }
   }, [flight, mode, isOpen]);

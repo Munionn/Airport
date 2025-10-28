@@ -158,13 +158,7 @@ export class PassengersService {
       passport_number,
       nationality,
       date_of_birth,
-      address,
-      city,
-      country,
-      emergency_contact_name,
-      emergency_contact_phone,
-      frequent_flyer = false,
-      frequent_flyer_number,
+      special_requirements,
     } = createPassengerDto;
 
     // Check if passenger with same passport already exists
@@ -183,11 +177,9 @@ export class PassengersService {
 
     const result = await this.databaseService.query<PassengerResponseDto>(
       `INSERT INTO passengers (
-        first_name, last_name, email, phone, passport_number, nationality,
-        date_of_birth, address, city, country, emergency_contact_name,
-        emergency_contact_phone, frequent_flyer, frequent_flyer_number
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-      RETURNING *`,
+        first_name, last_name, email, phone, passport_number, 
+        nationality, date_of_birth, special_requirements
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
       [
         first_name,
         last_name,
@@ -196,13 +188,7 @@ export class PassengersService {
         passport_number,
         nationality,
         date_of_birth,
-        address,
-        city,
-        country,
-        emergency_contact_name,
-        emergency_contact_phone,
-        frequent_flyer,
-        frequent_flyer_number,
+        special_requirements,
       ],
     );
     return result.rows[0];
@@ -227,7 +213,7 @@ export class PassengersService {
     const values = fields.map(field => updatePassengerDto[field as keyof UpdatePassengerDto]);
 
     const result = await this.databaseService.query<PassengerResponseDto>(
-      `UPDATE passengers SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE passenger_id = $1 RETURNING *`,
+      `UPDATE passengers SET ${setClause} WHERE passenger_id = $1 RETURNING *`,
       [passenger_id, ...values],
     );
     return result.rows[0] || null;

@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import type { Flight } from '../../types';
 
 export const AdminFlightsPage: React.FC = () => {
-  const { success, error } = useToast();
+  const { success } = useToast();
   const [flights, setFlights] = useState<Flight[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -27,8 +27,14 @@ export const AdminFlightsPage: React.FC = () => {
       const response = await flightsApi.getAll(currentPage, 10);
       const data = response.data;
 
+      console.log('🔍 Raw API response:', response);
+      console.log('🔍 Response data:', data);
+
       if (data.data) {
         let filteredFlights = data.data;
+
+        console.log('🔍 Raw flights data:', filteredFlights);
+        console.log('🔍 First flight sample:', filteredFlights[0]);
 
         // Apply search filter
         if (searchTerm) {
@@ -46,15 +52,17 @@ export const AdminFlightsPage: React.FC = () => {
           );
         }
 
+        console.log('✅ Flights loaded:', response.data);
         setFlights(filteredFlights);
         setTotalPages(data.totalPages || 1);
       }
     } catch (err: unknown) {
-      error('Failed to load flights', err instanceof Error ? err.message : 'Unknown error');
+      console.error('Failed to load flights:', err);
+      // Use console.error instead of toast to avoid dependency issues
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchTerm, statusFilter, error]);
+  }, [currentPage, searchTerm, statusFilter]);
 
   useEffect(() => {
     loadFlights();
@@ -91,7 +99,8 @@ export const AdminFlightsPage: React.FC = () => {
       setFlights(prev => prev.filter(flight => flight.flight_id !== deleteFlight.flight_id));
       setDeleteFlight(null);
     } catch (err: unknown) {
-      error('Failed to delete flight', err instanceof Error ? err.message : 'Unknown error');
+      console.error('Failed to delete flight:', err);
+      // Use console.error instead of toast to avoid dependency issues
     }
   };
 

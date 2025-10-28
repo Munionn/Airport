@@ -8,6 +8,8 @@ export { FlightSearchPage } from './FlightSearchPage';
 export { FlightDetailsPage } from './FlightDetailsPage';
 export { BookingPage } from './BookingPage';
 export { MyTicketsPage } from './MyTicketsPage';
+export { TicketDetailPage } from './TicketDetailPage';
+export { ApiTestPage } from './ApiTestPage';
 
 export const CheckInPage: React.FC = () => (
   <div className="p-6 bg-white rounded-lg shadow-md">

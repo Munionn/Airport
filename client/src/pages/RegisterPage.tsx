@@ -4,9 +4,11 @@ import { useForm } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle, Button, Input, LoadingSpinner } from '../components/ui';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../components/ui/Notification';
+import { authApi } from '../api/authApi';
 import { Eye, EyeOff, User, Mail, Lock, Phone } from 'lucide-react';
 
 interface RegisterFormData {
+  username: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -35,18 +37,22 @@ export const RegisterPage: React.FC = () => {
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     try {
-      // For now, we'll simulate registration and auto-login
-      // In a real app, you'd call a register API endpoint
-      const mockUser = {
-        user_id: Math.floor(Math.random() * 1000),
+      console.log('🔄 Registering user:', data);
+      
+      // Call real registration API
+      const registerData = {
+        username: data.username,
+        email: data.email,
+        password: data.password,
         first_name: data.first_name,
         last_name: data.last_name,
-        email: data.email,
         phone: data.phone,
-        roles: [{ role_id: 1, role_name: 'passenger' }],
       };
-
-      // Auto-login after registration
+      
+      const response = await authApi.register(registerData);
+      console.log('✅ Registration successful:', response.data);
+      
+      // Auto-login after successful registration
       const loginResult = await signIn({
         email: data.email,
         password: data.password,
@@ -56,10 +62,12 @@ export const RegisterPage: React.FC = () => {
         success('Registration successful!', 'Welcome to our flight booking system.');
         navigate('/user/my-tickets');
       } else {
-        error('Registration failed', loginResult.error);
+        error('Registration successful but login failed', loginResult.error);
+        navigate('/login');
       }
     } catch (err: any) {
-      error('Registration failed', err.message);
+      console.error('❌ Registration failed:', err);
+      error('Registration failed', err.response?.data?.message || err.message || 'Registration failed');
     } finally {
       setIsLoading(false);
     }
@@ -89,6 +97,36 @@ export const RegisterPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Username
+                </label>
+                <div className="mt-1 relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    {...register('username', {
+                      required: 'Username is required',
+                      minLength: {
+                        value: 3,
+                        message: 'Username must be at least 3 characters',
+                      },
+                      pattern: {
+                        value: /^[a-zA-Z0-9_]+$/,
+                        message: 'Username can only contain letters, numbers, and underscores',
+                      },
+                    })}
+                    type="text"
+                    placeholder="johndoe"
+                    className="pl-10"
+                  />
+                </div>
+                {errors.username && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.username.message}
+                  </p>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">

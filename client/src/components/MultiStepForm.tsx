@@ -32,13 +32,18 @@ export const MultiStepForm: React.FC<MultiStepFormProps> = ({
   const isFirstStep = currentStep === 0;
 
   const handleNext = (stepData: any) => {
+    console.log('🎯 MultiStepForm: handleNext called with stepData:', stepData);
+    console.log('🎯 MultiStepForm: currentStep:', currentStep, 'isLastStep:', isLastStep);
+    
     const newFormData = { ...formData, ...stepData };
     setFormData(newFormData);
     setCompletedSteps(prev => new Set([...prev, currentStep]));
 
     if (isLastStep) {
+      console.log('🎯 MultiStepForm: calling onComplete with data:', newFormData);
       onComplete(newFormData);
     } else {
+      console.log('🎯 MultiStepForm: moving to next step');
       setCurrentStep(prev => prev + 1);
     }
   };

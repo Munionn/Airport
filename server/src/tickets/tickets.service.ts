@@ -35,32 +35,45 @@ export class TicketsService {
     page: number = 1,
     limit: number = 10,
   ): Promise<PaginatedResponse<TicketResponseDto>> {
-    const result = await this.databaseService.queryPaginated<TicketResponseDto>(
-      `SELECT 
-        t.*,
-        p.first_name || ' ' || p.last_name as passenger_name,
-        f.flight_number,
-        dep_airport.iata_code as departure_airport,
-        arr_airport.iata_code as arrival_airport,
-        f.scheduled_departure as departure_time,
-        f.scheduled_arrival as arrival_time
-      FROM tickets t
-      JOIN passengers p ON t.passenger_id = p.passenger_id
-      JOIN flights f ON t.flight_id = f.flight_id
-      JOIN airports dep_airport ON f.departure_airport_id = dep_airport.airport_id
-      JOIN airports arr_airport ON f.arrival_airport_id = arr_airport.airport_id
-      ORDER BY t.created_at DESC`,
-      [],
-      page,
-      limit,
-    );
+    try {
+      console.log('🔄 Finding all tickets');
+      // Query with flight details
+      const result = await this.databaseService.queryPaginated<TicketResponseDto>(
+        `SELECT 
+          t.*,
+          f.flight_number,
+          f.scheduled_departure,
+          f.scheduled_arrival,
+          f.status as flight_status,
+          dep_airport.iata_code as departure_airport,
+          dep_airport.airport_name as departure_airport_name,
+          dep_city.city_name as departure_city,
+          arr_airport.iata_code as arrival_airport,
+          arr_airport.airport_name as arrival_airport_name,
+          arr_city.city_name as arrival_city
+        FROM tickets t
+        JOIN flights f ON t.flight_id = f.flight_id
+        JOIN airports dep_airport ON f.departure_airport_id = dep_airport.airport_id
+        JOIN cities dep_city ON dep_airport.city_id = dep_city.city_id
+        JOIN airports arr_airport ON f.arrival_airport_id = arr_airport.airport_id
+        JOIN cities arr_city ON arr_airport.city_id = arr_city.city_id
+        ORDER BY t.purchase_date DESC`,
+        [],
+        page,
+        limit,
+      );
+      console.log('✅ All tickets query result:', result);
 
-    return {
-      ...result,
-      totalPages: Math.ceil(result.total / result.limit),
-      hasNext: result.page < Math.ceil(result.total / result.limit),
-      hasPrev: result.page > 1,
-    };
+      return {
+        ...result,
+        totalPages: Math.ceil(result.total / result.limit),
+        hasNext: result.page < Math.ceil(result.total / result.limit),
+        hasPrev: result.page > 1,
+      };
+    } catch (error) {
+      console.error('❌ Error in findAll:', error);
+      throw error;
+    }
   }
 
   /**
@@ -109,6 +122,78 @@ export class TicketsService {
       [ticket_number],
     );
     return result.rows[0] || null;
+  }
+
+  /**
+   * Get tickets by passenger ID
+   */
+  async findByPassengerId(
+    passenger_id: number,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<PaginatedResponse<TicketResponseDto>> {
+    try {
+      console.log('🔄 Finding tickets for passenger:', passenger_id);
+      
+      // First, find the actual passenger_id by user_id
+      const passengerResult = await this.databaseService.query(
+        'SELECT passenger_id FROM passengers WHERE user_id = $1',
+        [passenger_id]
+      );
+      
+      if (passengerResult.rows.length === 0) {
+        console.log('❌ No passenger record found for user_id:', passenger_id);
+        return {
+          data: [],
+          total: 0,
+          page,
+          limit,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false,
+        };
+      }
+      const actualPassengerId = passengerResult.rows[0].passenger_id;
+      console.log('✅ Found passenger_id:', actualPassengerId, 'for user_id:', passenger_id);
+      // Query with flight details
+      const result = await this.databaseService.queryPaginated<TicketResponseDto>(
+        `SELECT 
+          t.*,
+          f.flight_number,
+          f.scheduled_departure,
+          f.scheduled_arrival,
+          f.status as flight_status,
+          dep_airport.iata_code as departure_airport,
+          dep_airport.airport_name as departure_airport_name,
+          dep_city.city_name as departure_city,
+          arr_airport.iata_code as arrival_airport,
+          arr_airport.airport_name as arrival_airport_name,
+          arr_city.city_name as arrival_city
+        FROM tickets t
+        JOIN flights f ON t.flight_id = f.flight_id
+        JOIN airports dep_airport ON f.departure_airport_id = dep_airport.airport_id
+        JOIN cities dep_city ON dep_airport.city_id = dep_city.city_id
+        JOIN airports arr_airport ON f.arrival_airport_id = arr_airport.airport_id
+        JOIN cities arr_city ON arr_airport.city_id = arr_city.city_id
+        WHERE t.passenger_id = $1 
+        ORDER BY t.purchase_date DESC`,
+        [actualPassengerId],
+        page,
+        limit,
+      );
+      
+      console.log('✅ Passenger tickets query result:', result);
+
+      return {
+        ...result,
+        totalPages: Math.ceil(result.total / result.limit),
+        hasNext: result.page < Math.ceil(result.total / result.limit),
+        hasPrev: result.page > 1,
+      };
+    } catch (error) {
+      console.error('❌ Error in findByPassengerId:', error);
+      throw error;
+    }
   }
 
   /**
@@ -216,51 +301,106 @@ export class TicketsService {
       booking_reference,
     } = createTicketDto;
 
-    // Check if passenger exists
-    const passengerExists = await this.databaseService.exists('passengers', { passenger_id });
-    if (!passengerExists) {
-      throw new NotFoundException('Passenger not found');
-    }
+    try {
+      console.log('🔄 Creating ticket with data:', createTicketDto);
 
-    // Check if flight exists
-    const flightExists = await this.databaseService.exists('flights', { flight_id });
-    if (!flightExists) {
-      throw new NotFoundException('Flight not found');
-    }
-
-    // Check seat availability if seat is specified
-    if (seat_number) {
-      const seatAvailable = await this.checkSeatAvailability(flight_id, seat_number);
-      if (!seatAvailable) {
-        throw new ConflictException('Seat is not available');
+      // Check if flight exists (simplified check)
+      const flightCheck = await this.databaseService.query(
+        'SELECT flight_id FROM flights WHERE flight_id = $1',
+        [flight_id]
+      );
+      if (flightCheck.rows.length === 0) {
+        throw new NotFoundException('Flight not found');
       }
+
+      // Check if passenger exists, if not create one
+      // Note: passenger_id in DTO is actually user_id from frontend
+      let actualPassengerId: number;
+      
+      // First, try to find existing passenger by user_id
+      const existingPassengerResult = await this.databaseService.query(
+        'SELECT passenger_id FROM passengers WHERE user_id = $1',
+        [passenger_id]
+      );
+      
+      if (existingPassengerResult.rows.length > 0) {
+        actualPassengerId = existingPassengerResult.rows[0].passenger_id;
+        console.log('✅ Found existing passenger with ID:', actualPassengerId);
+      } else {
+        console.log('🔄 Passenger not found, creating passenger record...');
+        
+        // Get user data to create passenger record
+        const userResult = await this.databaseService.query(
+          'SELECT * FROM users WHERE user_id = $1',
+          [passenger_id],
+        );        
+        if (userResult.rows.length === 0) {
+          throw new NotFoundException('User not found');
+        }
+        
+        const user = userResult.rows[0];
+        console.log('✅ Found user data:', { user_id: user.user_id, email: user.email });
+        
+        // Create passenger record
+        const newPassengerResult = await this.databaseService.query(
+          `INSERT INTO passengers (user_id, first_name, last_name, passport_number, nationality, date_of_birth, phone, email)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           RETURNING passenger_id`,
+          [
+            passenger_id,
+            user.first_name || 'Unknown',
+            user.last_name || 'User',
+            user.passport_number || 'PASS' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+            user.nationality || 'Unknown',
+            user.date_of_birth || '1990-01-01',
+            user.phone || '+1234567890',
+            user.email || 'user@example.com',
+          ]
+        );
+        
+        actualPassengerId = newPassengerResult.rows[0].passenger_id;
+        console.log('✅ Passenger record created with ID:', actualPassengerId);
+      }
+
+      // Check seat availability if seat is specified
+      if (seat_number) {
+        const seatAvailable = await this.checkSeatAvailability(flight_id, seat_number);
+        if (!seatAvailable) {
+          throw new ConflictException('Seat is not available');
+        }
+      }
+
+      // Generate ticket number
+      const ticketNumber = await this.generateTicketNumber();
+
+      const result = await this.databaseService.query<TicketResponseDto>(
+        `INSERT INTO tickets (
+          passenger_id, flight_id, seat_number, class, price,
+          meal_preference, special_requests, insurance, booking_reference,
+          ticket_number, status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING *`,
+        [
+          actualPassengerId, 
+          flight_id,
+          seat_number,
+          ticketClass,
+          price,
+          meal_preference,
+          special_requests,
+          insurance,
+          booking_reference,
+          ticketNumber,
+          TicketStatus.ACTIVE,
+        ],
+      );
+      
+      console.log('✅ Ticket created successfully:', result.rows[0]);
+      return result.rows[0];
+    } catch (error) {
+      console.error('❌ Error creating ticket:', error);
+      throw error;
     }
-
-    // Generate ticket number
-    const ticketNumber = await this.generateTicketNumber();
-
-    const result = await this.databaseService.query<TicketResponseDto>(
-      `INSERT INTO tickets (
-        passenger_id, flight_id, seat_number, class, price,
-        meal_preference, special_requests, insurance, booking_reference,
-        ticket_number, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING *`,
-      [
-        passenger_id,
-        flight_id,
-        seat_number,
-        ticketClass,
-        price,
-        meal_preference,
-        special_requests,
-        insurance,
-        booking_reference,
-        ticketNumber,
-        TicketStatus.ACTIVE,
-      ],
-    );
-    return result.rows[0];
   }
 
   /**
@@ -542,18 +682,23 @@ export class TicketsService {
     };
 
     if (include_details) {
-      // Generate seat map (simplified)
+      // Generate seat map with correct format (row + letter)
       response.seat_map = [];
-      for (let i = 1; i <= capacity; i++) {
-        const seatNumber = `A${i}`;
-        const occupiedSeat = occupiedSeats.find(s => s.seat_number === seatNumber);
+      const seatsPerRow = 6;
+      const totalRows = Math.ceil(capacity / seatsPerRow);
+      
+      for (let row = 1; row <= totalRows; row++) {
+        for (let seat = 0; seat < seatsPerRow; seat++) {
+          const seatNumber = `${row}${String.fromCharCode(65 + seat)}`;
+          const occupiedSeat = occupiedSeats.find(s => s.seat_number === seatNumber);
 
-        response.seat_map.push({
-          seat_number: seatNumber,
-          class: TicketClass.ECONOMY, // Simplified
-          status: occupiedSeat ? 'occupied' : 'available',
-          price: occupiedSeat?.price || 0,
-        });
+          response.seat_map.push({
+            seat_number: seatNumber,
+            class: TicketClass.ECONOMY, // Simplified
+            status: occupiedSeat ? 'occupied' : 'available',
+            price: occupiedSeat?.price || 0,
+          });
+        }
       }
     }
 

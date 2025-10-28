@@ -447,12 +447,23 @@ export interface Ticket {
   passenger_id: number;
   seat_number: string;
   class: TicketClass;
-  price: number;
+  price: number | string;
   status: TicketStatus;
   purchase_date: string;
   check_in_time?: string;
   flight?: Flight;
   passenger?: Passenger;
+  // detailst about flight 
+  flight_number?: string;
+  scheduled_departure?: string;
+  scheduled_arrival?: string;
+  flight_status?: string;
+  departure_airport?: string;
+  departure_airport_name?: string;
+  departure_city?: string;
+  arrival_airport?: string;
+  arrival_airport_name?: string;
+  arrival_city?: string;
 }
 
 export interface CreateTicketDto {
@@ -806,4 +817,74 @@ export interface TicketPricingResponseDto {
   fees: number;
   total_price: number;
   currency: string;
+}
+
+// City types
+export interface City {
+  city_id: number;
+  city_name: string;
+  country: string;
+  timezone?: string;
+  latitude?: number;
+  longitude?: number;
+  region?: string;
+  country_code?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateCityDto {
+  city_name: string;
+  country: string;
+  timezone?: string;
+  latitude?: number;
+  longitude?: number;
+  region?: string;
+  country_code?: string;
+}
+
+export interface UpdateCityDto {
+  city_name?: string;
+  country?: string;
+  timezone?: string;
+  latitude?: number;
+  longitude?: number;
+  region?: string;
+  country_code?: string;
+}
+
+export interface SearchCitiesDto extends PaginationParams {
+  city_name?: string;
+  country?: string;
+  region?: string;
+  country_code?: string;
+  timezone?: string;
+}
+
+export interface CityStatisticsDto {
+  start_date?: string;
+  end_date?: string;
+  city_id?: number;
+  country?: string;
+}
+
+export interface CityStatisticsResponse {
+  total_cities: number;
+  cities_by_country: Array<{
+    country: string;
+    count: number;
+  }>;
+  cities_by_region: Array<{
+    region: string;
+    count: number;
+  }>;
+  airports_per_city: Array<{
+    city_name: string;
+    airport_count: number;
+  }>;
+  flights_per_city: Array<{
+    city_name: string;
+    departure_flights: number;
+    arrival_flights: number;
+  }>;
 }

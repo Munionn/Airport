@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button } from '../components/ui';
 import { User, X } from 'lucide-react';
 import { clsx } from 'clsx';
+import { ticketsApi } from '../api/ticketsApi';
 import type { Flight } from '../types';
 
 interface SeatMapProps {
@@ -55,22 +56,65 @@ export const SeatMap: React.FC<SeatMapProps> = ({
   className,
 }) => {
   const [seatMap, setSeatMap] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Generate seat map based on aircraft capacity
+  // Fetch real seat availability from API
   useEffect(() => {
-    const seats: Record<string, boolean> = {};
-    const capacity = flight.aircraft?.capacity || 150;
-    
-    // Mock occupied seats (in real app, this would come from API)
-    const occupiedSeats = Math.floor(capacity * 0.3); // 30% occupied
-    
-    for (let i = 1; i <= capacity; i++) {
-      const seatNumber = `${Math.floor((i - 1) / 6) + 1}${String.fromCharCode(65 + ((i - 1) % 6))}`;
-      seats[seatNumber] = Math.random() < 0.3; // Random occupied seats
+    const fetchSeatAvailability = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log('🔄 Fetching seat availability for flight:', flight.flight_id);
+        
+        const response = await ticketsApi.getSeatAvailability({
+          flight_id: flight.flight_id,
+          include_details: true
+        });
+        
+        console.log('✅ Seat availability response:', response.data);
+        
+        // Process seat map data
+        const seats: Record<string, boolean> = {};
+        
+        if (response.data.seat_map) {
+          response.data.seat_map.forEach((seat: any) => {
+            seats[seat.seat_number] = seat.status === 'occupied';
+          });
+        } else {
+          // Fallback: generate seats based on capacity
+          const capacity = flight.aircraft?.capacity || 150;
+          for (let i = 1; i <= capacity; i++) {
+            const seatNumber = `${Math.floor((i - 1) / 6) + 1}${String.fromCharCode(65 + ((i - 1) % 6))}`;
+            seats[seatNumber] = false; // All available by default
+          }
+        }
+        
+        setSeatMap(seats);
+        console.log('✅ Seat map loaded:', seats);
+        
+      } catch (err) {
+        console.error('❌ Failed to fetch seat availability:', err);
+        setError('Failed to load seat map');
+        
+        // Fallback: generate empty seat map
+        const seats: Record<string, boolean> = {};
+        const capacity = flight.aircraft?.capacity || 150;
+        for (let i = 1; i <= capacity; i++) {
+          const seatNumber = `${Math.floor((i - 1) / 6) + 1}${String.fromCharCode(65 + ((i - 1) % 6))}`;
+          seats[seatNumber] = false;
+        }
+        setSeatMap(seats);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (flight?.flight_id) {
+      fetchSeatAvailability();
     }
-    
-    setSeatMap(seats);
-  }, [flight.aircraft?.capacity]);
+  }, [flight?.flight_id]);
 
   const getSeatRows = () => {
     const rows: string[][] = [];
@@ -103,7 +147,22 @@ export const SeatMap: React.FC<SeatMapProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Loading seat map...</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-6">
           {/* Legend */}
           <div className="flex items-center space-x-6 text-sm">
             <div className="flex items-center space-x-2">
@@ -197,7 +256,8 @@ export const SeatMap: React.FC<SeatMapProps> = ({
               </div>
             </div>
           )}
-        </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

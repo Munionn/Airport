@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, LoadingSpinner, StatusBadge, ConfirmDialog } from '../../components/ui';
+import { Card, CardContent, Button, Input, LoadingSpinner, ConfirmDialog } from '../../components/ui';
 import { useToast } from '../../components/ui/Notification';
-import { Plus, Edit, Trash2, Search, User as UserIcon, Mail, Phone, Calendar, Plane } from 'lucide-react';
+import { Edit, Trash2, User as UserIcon, Mail, Calendar, Plane, Plus } from 'lucide-react';
 import { format } from 'date-fns';
+import { passengersApi } from '../../api/passengersApi';
+import { PassengerUpdateForm } from '../../components/admin/PassengerUpdateForm';
+import { PassengerCreateForm } from '../../components/admin/PassengerCreateForm';
 import type { Passenger } from '../../types';
 
 interface PassengerWithDetails extends Passenger {
@@ -17,93 +20,91 @@ export const AdminPassengersPage: React.FC = () => {
   const [passengers, setPassengers] = useState<PassengerWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
   const [deletePassenger, setDeletePassenger] = useState<PassengerWithDetails | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [editingPassenger, setEditingPassenger] = useState<PassengerWithDetails | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
-  // Mock data - in real app, this would come from API
+  // Load passengers data from API
   useEffect(() => {
-    const mockPassengers: PassengerWithDetails[] = [
-      {
-        passenger_id: 1,
-        user_id: 1,
-        first_name: 'John',
-        last_name: 'Doe',
-        email: 'john.doe@example.com',
-        phone: '+1234567890',
-        date_of_birth: '1990-01-01',
-        passport_number: 'A1234567',
-        nationality: 'US',
-        created_at: '2024-01-15T10:00:00Z',
-        updated_at: '2024-01-20T14:30:00Z',
-        totalFlights: 12,
-        totalTickets: 15,
-        lastFlight: '2024-01-18T14:30:00Z',
-        loyaltyPoints: 2450,
-      },
-      {
-        passenger_id: 2,
-        user_id: 2,
-        first_name: 'Jane',
-        last_name: 'Smith',
-        email: 'jane.smith@example.com',
-        phone: '+1234567891',
-        date_of_birth: '1985-05-15',
-        passport_number: 'B2345678',
-        nationality: 'CA',
-        created_at: '2024-01-10T08:00:00Z',
-        updated_at: '2024-01-25T16:45:00Z',
-        totalFlights: 8,
-        totalTickets: 10,
-        lastFlight: '2024-01-22T09:15:00Z',
-        loyaltyPoints: 1800,
-      },
-      {
-        passenger_id: 3,
-        user_id: 3,
-        first_name: 'Mike',
-        last_name: 'Johnson',
-        email: 'mike.johnson@example.com',
-        phone: '+1234567892',
-        date_of_birth: '1992-07-10',
-        passport_number: 'C3456789',
-        nationality: 'UK',
-        created_at: '2024-01-12T09:00:00Z',
-        updated_at: '2024-01-18T12:30:00Z',
-        totalFlights: 25,
-        totalTickets: 28,
-        lastFlight: '2024-01-25T16:20:00Z',
-        loyaltyPoints: 4200,
-      },
-      {
-        passenger_id: 4,
-        user_id: 4,
-        first_name: 'Sarah',
-        last_name: 'Wilson',
-        email: 'sarah.wilson@example.com',
-        phone: '+1234567893',
-        date_of_birth: '1988-03-20',
-        passport_number: 'D4567890',
-        nationality: 'AU',
-        created_at: '2024-01-08T11:00:00Z',
-        updated_at: '2024-01-30T14:00:00Z',
-        totalFlights: 5,
-        totalTickets: 6,
-        lastFlight: '2024-01-28T11:45:00Z',
-        loyaltyPoints: 950,
+    const loadPassengers = async () => {
+      try {
+        setLoading(true);
+        const response = await passengersApi.getAll(1, 100);
+        console.log('✅ Passengers loaded:', response.data);
+        
+        // Transform API data to include additional details
+        const passengersWithDetails: PassengerWithDetails[] = (response.data.data || response.data).map((passenger: Passenger) => ({
+          ...passenger,
+          totalFlights: Math.floor(Math.random() * 50) + 5, // Mock data - would come from flights API
+          totalTickets: Math.floor(Math.random() * 60) + 8, // Mock data - would come from tickets API
+          lastFlight: passenger.created_at || new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+          loyaltyPoints: Math.floor(Math.random() * 5000) + 500, // Mock data - would come from loyalty system
+        }));
+        
+        setPassengers(passengersWithDetails);
+      } catch (err: unknown) {
+        console.error('❌ Failed to load passengers:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        setLoadError(errorMessage);
+        
+        // Fallback to mock data if API fails
+        const mockPassengers: PassengerWithDetails[] = [
+          {
+            passenger_id: 1,
+            user_id: 1,
+            first_name: 'John',
+            last_name: 'Doe',
+            email: 'john.doe@example.com',
+            phone: '+1234567890',
+            date_of_birth: '1990-01-01',
+            passport_number: 'A1234567',
+            nationality: 'US',
+            created_at: '2024-01-15T10:00:00Z',
+            totalFlights: 12,
+            totalTickets: 15,
+            lastFlight: '2024-01-18T14:30:00Z',
+            loyaltyPoints: 2450,
+          },
+          {
+            passenger_id: 2,
+            user_id: 2,
+            first_name: 'Jane',
+            last_name: 'Smith',
+            email: 'jane.smith@example.com',
+            phone: '+1234567891',
+            date_of_birth: '1985-05-15',
+            passport_number: 'B2345678',
+            nationality: 'CA',
+            created_at: '2024-01-10T08:00:00Z',
+            totalFlights: 8,
+            totalTickets: 10,
+            lastFlight: '2024-01-22T09:15:00Z',
+            loyaltyPoints: 1800,
+          }
+        ];
+        setPassengers(mockPassengers);
+      } finally {
+        setLoading(false);
       }
-    ];
+    };
 
-    setTimeout(() => {
-      setPassengers(mockPassengers);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    loadPassengers();
+  }, []); // Empty dependency array to prevent infinite loop
+
+  // Show error toast when loadError changes
+  useEffect(() => {
+    if (loadError) {
+      error('Failed to load passengers', loadError);
+      setLoadError(null); // Clear error after showing
+    }
+  }, [loadError, error]);
 
   const filteredPassengers = passengers.filter(passenger => {
     const matchesSearch = 
       passenger.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       passenger.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      passenger.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (passenger.email && passenger.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       passenger.passport_number.toLowerCase().includes(searchTerm.toLowerCase());
     
     return matchesSearch;
@@ -111,13 +112,54 @@ export const AdminPassengersPage: React.FC = () => {
 
   const handleDeletePassenger = async (passenger: PassengerWithDetails) => {
     try {
-      // In real app, this would call passengersApi.delete(passenger.passenger_id)
+      await passengersApi.delete(passenger.passenger_id);
       setPassengers(prev => prev.filter(p => p.passenger_id !== passenger.passenger_id));
       success('Passenger deleted', `Passenger ${passenger.first_name} ${passenger.last_name} has been deleted`);
       setDeletePassenger(null);
-    } catch (err: any) {
-      error('Delete failed', err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      error('Delete failed', errorMessage);
     }
+  };
+
+  const handleUpdateSuccess = () => {
+    // Reload passengers list after successful update
+    const loadPassengers = async () => {
+      try {
+        const response = await passengersApi.getAll(1, 100);
+        const passengersWithDetails: PassengerWithDetails[] = (response.data.data || response.data).map((passenger: Passenger) => ({
+          ...passenger,
+          totalFlights: Math.floor(Math.random() * 50) + 5,
+          totalTickets: Math.floor(Math.random() * 60) + 8,
+          lastFlight: passenger.created_at || new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+          loyaltyPoints: Math.floor(Math.random() * 5000) + 500,
+        }));
+        setPassengers(passengersWithDetails);
+      } catch (err: unknown) {
+        console.error('Failed to reload passengers:', err);
+      }
+    };
+    loadPassengers();
+  };
+
+  const handleCreateSuccess = () => {
+    // Reload passengers list after successful creation
+    const loadPassengers = async () => {
+      try {
+        const response = await passengersApi.getAll(1, 100);
+        const passengersWithDetails: PassengerWithDetails[] = (response.data.data || response.data).map((passenger: Passenger) => ({
+          ...passenger,
+          totalFlights: Math.floor(Math.random() * 50) + 5,
+          totalTickets: Math.floor(Math.random() * 60) + 8,
+          lastFlight: passenger.created_at || new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+          loyaltyPoints: Math.floor(Math.random() * 5000) + 500,
+        }));
+        setPassengers(passengersWithDetails);
+      } catch (err: unknown) {
+        console.error('Failed to reload passengers:', err);
+      }
+    };
+    loadPassengers();
   };
 
   if (loading) {
@@ -141,7 +183,7 @@ export const AdminPassengersPage: React.FC = () => {
               Manage passenger information and flight history
             </p>
           </div>
-          <Button>
+          <Button onClick={() => setShowCreateForm(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Add Passenger
           </Button>
@@ -152,7 +194,7 @@ export const AdminPassengersPage: React.FC = () => {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <User className="h-8 w-8 text-blue-600" />
+                <UserIcon className="h-8 w-8 text-blue-600" />
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Passengers</p>
                   <p className="text-2xl font-bold text-gray-900">{passengers.length}</p>
@@ -189,7 +231,7 @@ export const AdminPassengersPage: React.FC = () => {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <User className="h-8 w-8 text-orange-600" />
+                <UserIcon className="h-8 w-8 text-orange-600" />
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Avg. Loyalty Points</p>
                   <p className="text-2xl font-bold text-gray-900">
@@ -256,7 +298,11 @@ export const AdminPassengersPage: React.FC = () => {
                     
                     {/* Actions */}
                     <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setEditingPassenger(passenger)}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
@@ -301,6 +347,23 @@ export const AdminPassengersPage: React.FC = () => {
           confirmText="Delete"
           variant="danger"
         />
+
+        {/* Update Form */}
+        {editingPassenger && (
+          <PassengerUpdateForm
+            passengerId={editingPassenger.passenger_id}
+            onClose={() => setEditingPassenger(null)}
+            onSuccess={handleUpdateSuccess}
+          />
+        )}
+
+        {/* Create Form */}
+        {showCreateForm && (
+          <PassengerCreateForm
+            onClose={() => setShowCreateForm(false)}
+            onSuccess={handleCreateSuccess}
+          />
+        )}
       </div>
     </div>
   );

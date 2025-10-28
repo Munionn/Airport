@@ -28,31 +28,7 @@ export class CreatePassengerDto {
 
   @IsOptional()
   @IsString()
-  address?: string;
-
-  @IsOptional()
-  @IsString()
-  city?: string;
-
-  @IsOptional()
-  @IsString()
-  country?: string;
-
-  @IsOptional()
-  @IsString()
-  emergency_contact_name?: string;
-
-  @IsOptional()
-  @IsString()
-  emergency_contact_phone?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  frequent_flyer?: boolean;
-
-  @IsOptional()
-  @IsString()
-  frequent_flyer_number?: string;
+  special_requirements?: string;
 }
 
 export class UpdatePassengerDto {
@@ -86,31 +62,7 @@ export class UpdatePassengerDto {
 
   @IsOptional()
   @IsString()
-  address?: string;
-
-  @IsOptional()
-  @IsString()
-  city?: string;
-
-  @IsOptional()
-  @IsString()
-  country?: string;
-
-  @IsOptional()
-  @IsString()
-  emergency_contact_name?: string;
-
-  @IsOptional()
-  @IsString()
-  emergency_contact_phone?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  frequent_flyer?: boolean;
-
-  @IsOptional()
-  @IsString()
-  frequent_flyer_number?: string;
+  special_requirements?: string;
 }
 
 export class SearchPassengerDto extends PaginationDto {

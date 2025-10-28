@@ -3,11 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MultiStepForm } from '../components/MultiStepForm';
 import { SeatMap } from '../components/SeatMap';
 import { Card, CardContent, CardHeader, CardTitle, Button, Input } from '../components/ui';
-import { flightsApi } from '../api';
+import { flightsApi, ticketsApi } from '../api';
 import { useToast } from '../components/ui/Notification';
 import { useAuth } from '../hooks/useAuth';
-import { User, CreditCard, CheckCircle, Plane } from 'lucide-react';
-import type { Flight } from '../types';
+import { User, CheckCircle, Plane } from 'lucide-react';
+import type { Flight, TicketClass } from '../types';
 
 interface PassengerInfo {
   first_name: string;
@@ -18,19 +18,14 @@ interface PassengerInfo {
   date_of_birth: string;
 }
 
-interface PaymentInfo {
-  card_number: string;
-  expiry_date: string;
-  cvv: string;
-  cardholder_name: string;
-  billing_address: string;
-}
-
-interface BookingData {
+interface BookingData extends Record<string, unknown> {
   passengers: PassengerInfo[];
   selectedSeats: string[];
-  paymentInfo: PaymentInfo;
   ticketClass: string;
+}
+
+interface StepProps {
+  onNext?: (data: Record<string, unknown>) => void;
 }
 
 export const BookingPage: React.FC = () => {
@@ -41,9 +36,20 @@ export const BookingPage: React.FC = () => {
   
   const [flight, setFlight] = useState<Flight | null>(null);
   const [loading, setLoading] = useState(true);
-  const [passengerCount] = useState(1);
+  const [passengerCount, setPassengerCount] = useState(1);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [ticketClass, setTicketClass] = useState('economy');
+  const [passengers, setPassengers] = useState<PassengerInfo[]>(
+    Array(1).fill(null).map(() => ({
+      first_name: '',
+      last_name: '',
+      passport_number: '',
+      nationality: '',
+      date_of_birth: '',
+      phone: '',
+      email: '',
+    }))
+  );
 
   useEffect(() => {
     const loadFlight = async () => {
@@ -51,10 +57,12 @@ export const BookingPage: React.FC = () => {
       
       setLoading(true);
       try {
+        console.log('🔄 Loading flight with ID:', flightId);
         const response = await flightsApi.getById(parseInt(flightId));
+        console.log('✅ Flight loaded:', response.data);
         setFlight(response.data);
-      } catch (err: any) {
-        error('Failed to load flight', err.message);
+      } catch (err: unknown) {
+        console.error('❌ Failed to load flight:', err);
         navigate('/flights');
       } finally {
         setLoading(false);
@@ -62,7 +70,7 @@ export const BookingPage: React.FC = () => {
     };
 
     loadFlight();
-  }, [flightId, navigate, error]);
+  }, [flightId, navigate]);
 
   const handleSeatSelect = (seatNumber: string) => {
     setSelectedSeats(prev => {
@@ -75,17 +83,81 @@ export const BookingPage: React.FC = () => {
     });
   };
 
-  const PassengerInfoStep = ({ onNext }: any) => {
-    const [passengers, setPassengers] = useState<PassengerInfo[]>(
-      Array(passengerCount).fill(null).map(() => ({
-        first_name: '',
-        last_name: '',
-        email: user?.email || '',
-        phone: user?.phone || '',
-        passport_number: '',
-        date_of_birth: '',
-      }))
+  const handlePassengerCountChange = (count: number) => {
+    setPassengerCount(count);
+    // Update passengers array to match the new count
+    setPassengers(prev => {
+      const newPassengers = Array(count).fill(null).map((_, index) => {
+        if (prev[index]) {
+          return prev[index];
+        }
+        return {
+          first_name: '',
+          last_name: '',
+          passport_number: '',
+          nationality: '',
+          date_of_birth: '',
+          phone: '',
+          email: '',
+        };
+      });
+      return newPassengers;
+    });
+    // Clear selected seats when passenger count changes
+    setSelectedSeats([]);
+  };
+
+  const PassengerCountStep = ({ onNext }: StepProps) => {
+    const handleNext = () => {
+      if (onNext) {
+        onNext({ passengerCount });
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">How many passengers?</h2>
+          <p className="text-gray-600">
+            Select the number of passengers for this booking
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-md mx-auto">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((count) => (
+            <button
+              key={count}
+              onClick={() => handlePassengerCountChange(count)}
+              className={`p-4 rounded-lg border-2 transition-colors ${
+                passengerCount === count
+                  ? 'border-blue-600 bg-blue-50 text-blue-600'
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <div className="text-2xl font-bold">{count}</div>
+              <div className="text-sm text-gray-600">
+                {count === 1 ? 'Passenger' : 'Passengers'}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="text-center">
+          <p className="text-sm text-gray-500">
+            Selected: <span className="font-semibold">{passengerCount} {passengerCount === 1 ? 'passenger' : 'passengers'}</span>
+          </p>
+        </div>
+
+        <div className="flex justify-end">
+          <Button onClick={handleNext} disabled={passengerCount < 1}>
+            Continue to Passenger Details
+          </Button>
+        </div>
+      </div>
     );
+  };
+
+  const PassengerInfoStep = ({ onNext }: StepProps) => {
 
     const handlePassengerChange = (index: number, field: keyof PassengerInfo, value: string) => {
       setPassengers(prev => prev.map((passenger, i) => 
@@ -94,7 +166,9 @@ export const BookingPage: React.FC = () => {
     };
 
     const handleNext = () => {
-      onNext({ passengers });
+      if (onNext) {
+        onNext({ passengers });
+      }
     };
 
     return (
@@ -167,18 +241,23 @@ export const BookingPage: React.FC = () => {
     );
   };
 
-  const SeatSelectionStep = ({ onNext }: any) => {
+  const SeatSelectionStep = ({ onNext }: StepProps) => {
     const handleNext = () => {
-      if (selectedSeats.length === passengerCount) {
+      if (selectedSeats.length === passengerCount && onNext) {
         onNext({ selectedSeats, ticketClass });
       }
     };
 
     return (
       <div className="space-y-6">
-        <div className="flex items-center space-x-2 text-sm text-gray-600">
-          <Plane className="h-4 w-4" />
-          <span>Seat Selection</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-sm text-gray-600">
+            <Plane className="h-4 w-4" />
+            <span>Seat Selection</span>
+          </div>
+          <div className="text-sm text-gray-600">
+            Selected: {selectedSeats.length} / {passengerCount} seats
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -208,6 +287,30 @@ export const BookingPage: React.FC = () => {
                   <option value="business">Business</option>
                   <option value="first">First Class</option>
                 </select>
+              </CardContent>
+            </Card>
+
+            {/* Seat Assignments */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Seat Assignments</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {passengers.map((passenger, index) => (
+                  <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <div>
+                      <span className="text-sm font-medium">
+                        {passenger.first_name} {passenger.last_name}
+                      </span>
+                      <span className="text-xs text-gray-500 ml-2">
+                        (Passenger {index + 1})
+                      </span>
+                    </div>
+                    <div className="text-sm font-semibold">
+                      {selectedSeats[index] || 'Not selected'}
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
@@ -246,110 +349,113 @@ export const BookingPage: React.FC = () => {
             onClick={handleNext} 
             disabled={selectedSeats.length !== passengerCount}
           >
-            Continue to Payment
+            Continue to Confirmation
           </Button>
         </div>
       </div>
     );
   };
 
-  const PaymentStep = ({ onNext }: any) => {
-    const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>({
-      card_number: '',
-      expiry_date: '',
-      cvv: '',
-      cardholder_name: '',
-      billing_address: '',
-    });
 
-    const handlePaymentChange = (field: keyof PaymentInfo, value: string) => {
-      setPaymentInfo(prev => ({ ...prev, [field]: value }));
-    };
+  const ConfirmationStep = ({ onNext }: StepProps) => {
+    const [isProcessing, setIsProcessing] = useState(false);
 
-    const handleNext = () => {
-      onNext({ paymentInfo });
+    const handleConfirmBooking = async () => {
+      console.log('🎯 ConfirmationStep: handleConfirmBooking called');
+      setIsProcessing(true);
+      try {
+        // Create booking data with all collected information
+        const bookingData: BookingData = {
+          passengers,
+          selectedSeats,
+          ticketClass: ticketClass as TicketClass,
+        };
+        
+        console.log('🎯 ConfirmationStep: calling onNext with booking data:', bookingData);
+        
+        // Call the booking completion directly
+        await handleBookingComplete(bookingData);
+        
+        // Then move to the next step (success)
+        if (onNext) {
+          await onNext({});
+        }
+      } catch (error) {
+        console.error('❌ ConfirmationStep: Booking confirmation failed:', error);
+      } finally {
+        setIsProcessing(false);
+      }
     };
 
     return (
-      <div className="space-y-6">
-        <div className="flex items-center space-x-2 text-sm text-gray-600">
-          <CreditCard className="h-4 w-4" />
-          <span>Payment Information</span>
+      <div className="text-center space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Confirm Your Booking</h2>
+          <p className="text-gray-600">
+            Please review your booking details and confirm to complete your reservation.
+          </p>
         </div>
-
+        
+        {/* Booking Summary */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Payment Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Input
-              label="Card Number"
-              value={paymentInfo.card_number}
-              onChange={(e) => handlePaymentChange('card_number', e.target.value)}
-              placeholder="1234 5678 9012 3456"
-              required
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Expiry Date"
-                value={paymentInfo.expiry_date}
-                onChange={(e) => handlePaymentChange('expiry_date', e.target.value)}
-                placeholder="MM/YY"
-                required
-              />
-              <Input
-                label="CVV"
-                value={paymentInfo.cvv}
-                onChange={(e) => handlePaymentChange('cvv', e.target.value)}
-                placeholder="123"
-                required
-              />
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="flex justify-between">
+                <span className="font-medium">Flight:</span>
+                <span>{flight?.flight_number}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Route:</span>
+                <span>{flight?.departure_airport?.iata_code} → {flight?.arrival_airport?.iata_code}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Passengers:</span>
+                <span>{passengerCount}</span>
+              </div>
+              {/* Passenger Details */}
+              {passengers.map((passenger, index) => (
+                <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                  <div className="text-sm font-medium text-gray-700 mb-1">
+                    Passenger {index + 1}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {passenger.first_name} {passenger.last_name}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Seat: {selectedSeats[index] || 'Not selected'}
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-between">
+                <span className="font-medium">Seats:</span>
+                <span>{selectedSeats.join(', ')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Class:</span>
+                <span className="capitalize">{ticketClass}</span>
+              </div>
+              <div className="border-t pt-4">
+                <div className="flex justify-between text-lg font-semibold">
+                  <span>Total Price:</span>
+                  <span>
+                    ${flight ? (typeof flight.price === 'number' ? flight.price : Number(flight.price)) * passengerCount : 0}
+                  </span>
+                </div>
+              </div>
             </div>
-            <Input
-              label="Cardholder Name"
-              value={paymentInfo.cardholder_name}
-              onChange={(e) => handlePaymentChange('cardholder_name', e.target.value)}
-              required
-            />
-            <Input
-              label="Billing Address"
-              value={paymentInfo.billing_address}
-              onChange={(e) => handlePaymentChange('billing_address', e.target.value)}
-              required
-            />
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
-          <Button 
-            onClick={handleNext}
-            disabled={!paymentInfo.card_number || !paymentInfo.expiry_date || !paymentInfo.cvv}
-          >
-            Complete Booking
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
-  const ConfirmationStep = () => {
-    return (
-      <div className="text-center space-y-6">
-        <div className="flex justify-center">
-          <CheckCircle className="h-16 w-16 text-green-600" />
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking Confirmed!</h2>
-          <p className="text-gray-600">
-            Your flight has been successfully booked. You will receive a confirmation email shortly.
-          </p>
-        </div>
         <div className="flex justify-center space-x-4">
-          <Button onClick={() => navigate('/user/my-tickets')}>
-            View My Tickets
+          <Button 
+            onClick={handleConfirmBooking}
+            disabled={isProcessing}
+            className="px-8"
+          >
+            {isProcessing ? 'Processing...' : 'Confirm Booking'}
           </Button>
           <Button variant="outline" onClick={() => navigate('/flights')}>
-            Search More Flights
+            Cancel
           </Button>
         </div>
       </div>
@@ -357,14 +463,41 @@ export const BookingPage: React.FC = () => {
   };
 
   const handleBookingComplete = async (data: BookingData) => {
+    console.log('🎯 handleBookingComplete called with data:', data);
+    
+    if (!flight || !user) {
+      console.log('❌ Missing flight or user:', { flight: !!flight, user: !!user });
+      return;
+    }
+    
     try {
-      // In a real app, this would call the booking API
-      console.log('Booking data:', data);
+      console.log('🔄 Creating ticket for booking:', data);
       
-      success('Booking successful!', 'Your flight has been booked successfully.');
-      navigate('/user/my-tickets');
-    } catch (err: any) {
-      error('Booking failed', err.message);
+      // Create ticket for each passenger
+      const ticketPromises = data.passengers.map(async (_, index) => {
+        const ticketData = {
+          flight_id: flight.flight_id,
+          passenger_id: user.user_id, // This will be used to find/create passenger record
+          seat_number: data.selectedSeats[index] || `${index + 1}A`, // Correct format: number + letter
+          class: data.ticketClass as TicketClass,
+          price: flight.price,
+        };
+        
+        console.log('🔄 Creating ticket:', ticketData);
+        return await ticketsApi.simpleCreate(ticketData); // Use working simple endpoint
+      });
+      
+      const tickets = await Promise.all(ticketPromises);
+      console.log('✅ Tickets created:', tickets);
+      
+      success('Booking successful!', `Your flight has been booked successfully. ${tickets.length} ticket(s) created.`);
+      
+      // Don't navigate immediately - let the success step handle navigation
+      // The MultiStepForm will automatically move to the next step (success)
+    } catch (err: unknown) {
+      console.error('❌ Booking failed:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create tickets';
+      error('Booking failed', errorMessage);
     }
   };
 
@@ -390,7 +523,37 @@ export const BookingPage: React.FC = () => {
     );
   }
 
+  const SuccessStep = () => {
+    return (
+      <div className="text-center space-y-6">
+        <div className="flex justify-center">
+          <CheckCircle className="h-16 w-16 text-green-600" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking Confirmed!</h2>
+          <p className="text-gray-600">
+            Your flight has been successfully booked. You will receive a confirmation email shortly.
+          </p>
+        </div>
+        <div className="flex justify-center space-x-4">
+          <Button onClick={() => navigate('/user/my-tickets')}>
+            View My Tickets
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/flights')}>
+            Search More Flights
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   const steps = [
+    {
+      id: 'passenger-count',
+      title: 'Passenger Count',
+      description: 'Select number of passengers',
+      component: <PassengerCountStep />,
+    },
     {
       id: 'passengers',
       title: 'Passenger Info',
@@ -404,16 +567,16 @@ export const BookingPage: React.FC = () => {
       component: <SeatSelectionStep />,
     },
     {
-      id: 'payment',
-      title: 'Payment',
-      description: 'Enter payment details',
-      component: <PaymentStep />,
-    },
-    {
       id: 'confirmation',
       title: 'Confirmation',
       description: 'Review and confirm',
       component: <ConfirmationStep />,
+    },
+    {
+      id: 'success',
+      title: 'Success',
+      description: 'Booking completed',
+      component: <SuccessStep />,
     },
   ];
 

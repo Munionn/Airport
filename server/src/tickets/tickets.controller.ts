@@ -41,6 +41,45 @@ export class TicketsController {
     return this.ticketsService.findAll(pageNum, limitNum);
   }
 
+  @Get('debug/user/:userId')
+  async debugUser(@Param('userId', ParseIntPipe) userId: number): Promise<any> {
+    try {
+      console.log('🔍 Debugging user:', userId);
+      
+      // Check if user exists
+      const userResult = await this.ticketsService['databaseService'].query(
+        'SELECT * FROM users WHERE user_id = $1',
+        [userId]
+      );
+      
+      if (userResult.rows.length === 0) {
+        return {
+          success: false,
+          message: 'User not found',
+          user_id: userId
+        };
+      }
+      const user = userResult.rows[0];
+      // Check if passenger exists
+      const passengerResult = await this.ticketsService['databaseService'].query(
+        'SELECT * FROM passengers WHERE user_id = $1',
+        [userId]
+      );
+      return {
+        success: true,
+        user: user,
+        passenger: passengerResult.rows[0] || null,
+        has_passenger_record: passengerResult.rows.length > 0
+      };
+    } catch (error) {
+      console.error('❌ Debug user error:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
   @Get('search')
   async searchTickets(@Query() searchDto: SearchTicketDto): Promise<any> {
     return this.ticketsService.searchTickets(searchDto);
@@ -77,6 +116,17 @@ export class TicketsController {
     return this.ticketsService.findByTicketNumber(ticketNumber);
   }
 
+  @Get('passenger/:passengerId')
+  async findByPassengerId(
+    @Param('passengerId', ParseIntPipe) passengerId: number,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ): Promise<any> {
+    const pageNum = page ? parseInt(page) : 1;
+    const limitNum = limit ? parseInt(limit) : 10;
+    return this.ticketsService.findByPassengerId(passengerId, pageNum, limitNum);
+  }
+
   @Get(':id/seat-availability')
   async checkSeatAvailability(
     @Param('id', ParseIntPipe) flightId: number,
@@ -86,10 +136,47 @@ export class TicketsController {
     return { available };
   }
 
-  @Post()
+  @Post('simple-create')
   @HttpCode(HttpStatus.CREATED)
-  async createTicket(@Body() createTicketDto: CreateTicketDto): Promise<TicketResponseDto> {
-    return this.ticketsService.createTicket(createTicketDto);
+  async simpleCreateTicket(@Body() body: any): Promise<any> {
+    try {
+      console.log('🔄 Simple ticket creation with data:', body);
+      
+      // Find passenger_id by user_id
+      const passengerResult = await this.ticketsService['databaseService'].query(
+        'SELECT passenger_id FROM passengers WHERE user_id = $1',
+        [body.passenger_id]
+      );
+      
+      if (passengerResult.rows.length === 0) {
+        throw new Error('Passenger not found for user_id: ' + body.passenger_id);
+      }
+      
+      const actualPassengerId = passengerResult.rows[0].passenger_id;
+      console.log('✅ Found passenger_id:', actualPassengerId);
+      
+      // Simple ticket creation with correct passenger_id
+      const result = await this.ticketsService['databaseService'].query(
+        `INSERT INTO tickets (passenger_id, flight_id, seat_number, class, price, ticket_number, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING *`,
+        [
+          actualPassengerId, // Use actual passenger_id
+          body.flight_id,
+          body.seat_number || '1A', // Correct format
+          body.class || 'economy',
+          body.price || 299.99,
+          'TK' + Date.now().toString(36).toUpperCase(),
+          'active'
+        ]
+      );
+      
+      console.log('✅ Simple ticket created:', result.rows[0]);
+      return result.rows[0];
+    } catch (error) {
+      console.error('❌ Simple ticket creation failed:', error);
+      throw error;
+    }
   }
 
   @Post('check-in')

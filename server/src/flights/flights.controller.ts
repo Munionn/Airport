@@ -24,6 +24,7 @@ import {
   FlightSearchCriteriaDto,
   FlightResponseDto,
   FlightStatisticsResponseDto,
+  RegisterPassengerForFlightDto,
 } from './dto/flight.dto';
 // import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 
@@ -157,7 +158,7 @@ export class FlightsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDto: UpdateFlightStatusDto,
   ): Promise<FlightResponseDto> {
-    return this.flightsService.updateFlightStatus(updateDto);
+    return this.flightsService.updateFlightStatus(id, updateDto);
   }
 
   @Put(':id/gate')
@@ -169,7 +170,7 @@ export class FlightsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() assignGateDto: AssignGateDto,
   ): Promise<FlightResponseDto> {
-    return this.flightsService.assignGate(assignGateDto);
+    return this.flightsService.assignGate({ ...assignGateDto, flight_id: id });
   }
 
   @Put(':id/delay')
@@ -180,7 +181,7 @@ export class FlightsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() delayDto: FlightDelayDto,
   ): Promise<FlightResponseDto> {
-    return this.flightsService.handleFlightDelay(delayDto);
+    return this.flightsService.handleFlightDelay({ ...delayDto, flight_id: id });
   }
 
   @Put(':id/cancel')
@@ -191,7 +192,7 @@ export class FlightsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() cancellationDto: FlightCancellationDto,
   ): Promise<FlightResponseDto> {
-    return this.flightsService.cancelFlight(cancellationDto);
+    return this.flightsService.cancelFlight({ ...cancellationDto, flight_id: id });
   }
 
   @Delete(':id')
@@ -201,18 +202,6 @@ export class FlightsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteFlight(@Param('id', ParseIntPipe) id: number): Promise<void> {
     await this.flightsService.deleteFlight(id);
-  }
-
-  @Get(':id/seat-availability')
-  // @ApiOperation({ summary: 'Check seat availability' })
-  // @ApiParam({ name: 'id', description: 'Flight ID' })
-  // @ApiQuery({ name: 'seatNumber', description: 'Seat number' })
-  async checkSeatAvailability(
-    @Param('id', ParseIntPipe) id: number,
-    @Query('seatNumber') seatNumber: string,
-  ): Promise<{ available: boolean }> {
-    const available = await this.flightsService.checkSeatAvailability(id, seatNumber);
-    return { available };
   }
 
   @Get(':id/load')
@@ -265,5 +254,45 @@ export class FlightsController {
     @Query('departureDate') departureDate: string,
   ): Promise<any[]> {
     return this.flightsService.searchFlights(departureIata, arrivalIata, new Date(departureDate));
+  }
+
+  @Post(':id/register-passenger')
+  // @ApiOperation({ summary: 'Register passenger for flight' })
+  // @ApiParam({ name: 'id', description: 'Flight ID' })
+  // @ApiResponse({ status: 201, description: 'Passenger registered' })
+  async registerPassenger(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() registerDto: RegisterPassengerForFlightDto,
+  ): Promise<{ ticket_id: number }> {
+    const ticketId = await this.flightsService.registerPassengerForFlight(
+      registerDto.passenger_id,
+      id,
+      registerDto.seat_number,
+      registerDto.class,
+      registerDto.user_id,
+    );
+    return { ticket_id: ticketId };
+  }
+
+  @Get(':id/seat-availability/:seatNumber')
+  // @ApiOperation({ summary: 'Check seat availability' })
+  // @ApiParam({ name: 'id', description: 'Flight ID' })
+  // @ApiParam({ name: 'seatNumber', description: 'Seat number' })
+  async checkSeatAvailability(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('seatNumber') seatNumber: string,
+  ): Promise<{ available: boolean }> {
+    const available = await this.flightsService.isSeatAvailable(id, seatNumber);
+    return { available };
+  }
+
+  @Get(':id/load-percentage')
+  // @ApiOperation({ summary: 'Get flight load percentage' })
+  // @ApiParam({ name: 'id', description: 'Flight ID' })
+  async getLoadPercentage(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<{ load_percentage: number }> {
+    const loadPercentage = await this.flightsService.calculateFlightLoadPercentage(id);
+    return { load_percentage: loadPercentage };
   }
 }

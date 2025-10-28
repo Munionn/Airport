@@ -22,6 +22,10 @@ export const ticketsApi = {
   getAll: (page = 1, limit = 10) =>
     api.get<PaginatedResponse<Ticket>>(`/tickets?page=${page}&limit=${limit}`),
 
+  // Get tickets by passenger ID
+  getByPassengerId: (passengerId: number, page = 1, limit = 10) =>
+    api.get<PaginatedResponse<Ticket>>(`/tickets/passenger/${passengerId}?page=${page}&limit=${limit}`),
+
   // Search tickets
   search: (searchDto: SearchTicketDto) =>
     api.get<PaginatedResponse<Ticket>>('/tickets/search', { params: searchDto }),
@@ -53,6 +57,14 @@ export const ticketsApi = {
   // Create ticket
   create: (createDto: CreateTicketDto) =>
     api.post<Ticket>('/tickets', createDto),
+
+  // Test create ticket (for debugging)
+  testCreate: (createDto: CreateTicketDto) =>
+    api.post<Ticket>('/tickets/test-create', createDto),
+
+  // Simple create ticket (for debugging)
+  simpleCreate: (createDto: CreateTicketDto) =>
+    api.post<Ticket>('/tickets/simple-create', createDto),
 
   // Check in
   checkIn: (checkInDto: CheckInDto) =>

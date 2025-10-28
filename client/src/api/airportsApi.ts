@@ -6,7 +6,6 @@ import type {
   SearchAirportsDto,
   AirportStatisticsDto,
   AirportDistanceDto,
-  City,
 } from '../types';
 
 export const airportsApi = {
@@ -49,22 +48,4 @@ export const airportsApi = {
   // Delete airport
   delete: (id: number) =>
     api.delete(`/airports/${id}`),
-};
-
-export const citiesApi = {
-  // Get all cities
-  getAll: () =>
-    api.get<City[]>('/cities'),
-
-  // Get city by ID
-  getById: (id: number) =>
-    api.get<City>(`/cities/${id}`),
-
-  // Search cities
-  search: (searchTerm: string) =>
-    api.get<City[]>(`/cities/search?q=${searchTerm}`),
-
-  // Get cities by country
-  getByCountry: (country: string) =>
-    api.get<City[]>(`/cities/country/${country}`),
 };

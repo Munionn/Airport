@@ -34,6 +34,19 @@ export const FlightStatusManager: React.FC<FlightStatusManagerProps> = ({
     setLoading(true);
 
     try {
+      console.log('🔄 Updating flight status:', {
+        flight: flight,
+        flight_id: flight.flight_id,
+        flight_number: flight.flight_number,
+        current_status: flight.status,
+        new_status: newStatus
+      });
+
+      // Validate flight_id
+      if (!flight.flight_id) {
+        throw new Error('Flight ID is missing');
+      }
+
       let response;
       
       if (newStatus === 'delayed') {
@@ -51,6 +64,8 @@ export const FlightStatusManager: React.FC<FlightStatusManagerProps> = ({
         });
       }
 
+      console.log('✅ Status update successful:', response.data);
+
       success(
         'Flight status updated',
         `Flight ${flight.flight_number} status changed to ${newStatus}`
@@ -59,6 +74,7 @@ export const FlightStatusManager: React.FC<FlightStatusManagerProps> = ({
       onStatusUpdate(response.data);
       setIsOpen(false);
     } catch (err: any) {
+      console.error('❌ Status update failed:', err);
       error('Failed to update status', err.message);
     } finally {
       setLoading(false);

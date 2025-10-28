@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Button, Input, LoadingSpinner, StatusBadge, ConfirmDialog } from '../../components/ui';
 import { useToast } from '../../components/ui/Notification';
-import { Plus, Edit, Trash2, Search, Plane, Wrench, CheckCircle } from 'lucide-react';
+import { Edit, Trash2, Search, Plane, Wrench, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
-import type { Aircraft, AircraftStatus } from '../../types';
+import { aircraftApi } from '../../api/aircraftApi';
+import type { Aircraft, AircraftStatus, AircraftModel } from '../../types';
 
 interface AircraftWithDetails extends Aircraft {
   totalFlights: number;
@@ -19,78 +20,90 @@ export const AdminAircraftPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [deleteAircraft, setDeleteAircraft] = useState<AircraftWithDetails | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Mock data - in real app, this would come from API
+  // Load aircraft data from API
   useEffect(() => {
-    const mockAircraft: AircraftWithDetails[] = [
-      {
-        aircraft_id: 1,
-        registration_number: 'N123AB',
-        model: 'Boeing 737-800',
-        manufacturer: 'Boeing',
-        capacity: 189,
-        status: 'ACTIVE',
-        created_at: '2024-01-15T10:00:00Z',
-        updated_at: '2024-01-20T14:30:00Z',
-        totalFlights: 156,
-        totalHours: 2847,
-        lastMaintenance: '2024-01-10T08:00:00Z',
-        nextMaintenance: '2024-02-10T08:00:00Z',
-      },
-      {
-        aircraft_id: 2,
-        registration_number: 'N456CD',
-        model: 'Airbus A320',
-        manufacturer: 'Airbus',
-        capacity: 180,
-        status: 'MAINTENANCE',
-        created_at: '2024-01-10T08:00:00Z',
-        updated_at: '2024-01-25T16:45:00Z',
-        totalFlights: 203,
-        totalHours: 3245,
-        lastMaintenance: '2024-01-25T16:45:00Z',
-        nextMaintenance: '2024-02-25T16:45:00Z',
-      },
-      {
-        aircraft_id: 3,
-        registration_number: 'N789EF',
-        model: 'Boeing 777-300ER',
-        manufacturer: 'Boeing',
-        capacity: 396,
-        status: 'ACTIVE',
-        created_at: '2024-01-12T09:00:00Z',
-        updated_at: '2024-01-18T12:30:00Z',
-        totalFlights: 89,
-        totalHours: 1890,
-        lastMaintenance: '2024-01-05T10:00:00Z',
-        nextMaintenance: '2024-02-05T10:00:00Z',
-      },
-      {
-        aircraft_id: 4,
-        registration_number: 'N321GH',
-        model: 'Airbus A350-900',
-        manufacturer: 'Airbus',
-        capacity: 315,
-        status: 'RETIRED',
-        created_at: '2023-12-01T08:00:00Z',
-        updated_at: '2024-01-30T14:00:00Z',
-        totalFlights: 445,
-        totalHours: 8920,
-        lastMaintenance: '2024-01-30T14:00:00Z',
-        nextMaintenance: 'N/A',
+    const loadAircraft = async () => {
+      try {
+        setLoading(true);
+        const response = await aircraftApi.getAll(1, 100);
+        console.log('✅ Aircraft loaded:', response.data);
+        
+        // Transform API data to include additional details
+        const aircraftWithDetails: AircraftWithDetails[] = (response.data.data || response.data).map((plane: Aircraft) => ({
+          ...plane,
+          totalFlights: Math.floor(Math.random() * 500) + 50, // Mock data - would come from flights API
+          totalHours: Math.floor(Math.random() * 10000) + 1000, // Mock data - would come from flights API
+          lastMaintenance: plane.last_maintenance || new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+          nextMaintenance: plane.next_maintenance || new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+        }));
+        
+        setAircraft(aircraftWithDetails);
+      } catch (err: any) {
+        console.error('❌ Failed to load aircraft:', err);
+        // Use a simple console.error instead of toast to avoid dependency issues
+        console.error('Failed to load aircraft:', err.message);
+        setLoadError(err.message);
+        
+        // Fallback to mock data if API fails
+        const mockAircraft: AircraftWithDetails[] = [
+          {
+            aircraft_id: 1,
+            registration_number: 'N123AB',
+            model_id: 1,
+            model_name: 'Boeing 737-800',
+            manufacturer: 'Boeing',
+            capacity: 189,
+            max_range: 5765,
+            status: 'ACTIVE',
+            purchase_date: '2024-01-15T10:00:00Z',
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-20T14:30:00Z',
+            totalFlights: 156,
+            totalHours: 2847,
+            lastMaintenance: '2024-01-10T08:00:00Z',
+            nextMaintenance: '2024-02-10T08:00:00Z',
+          },
+          {
+            aircraft_id: 2,
+            registration_number: 'N456CD',
+            model_id: 2,
+            model_name: 'Airbus A320',
+            manufacturer: 'Airbus',
+            capacity: 180,
+            max_range: 6150,
+            status: 'MAINTENANCE',
+            purchase_date: '2024-01-10T08:00:00Z',
+            created_at: '2024-01-10T08:00:00Z',
+            updated_at: '2024-01-25T16:45:00Z',
+            totalFlights: 203,
+            totalHours: 3245,
+            lastMaintenance: '2024-01-25T16:45:00Z',
+            nextMaintenance: '2024-02-25T16:45:00Z',
+          }
+        ];
+        setAircraft(mockAircraft);
+      } finally {
+        setLoading(false);
       }
-    ];
+    };
 
-    setTimeout(() => {
-      setAircraft(mockAircraft);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    loadAircraft();
+  }, []); // Remove error from dependencies to prevent infinite loop
+
+  // Show error toast when loadError changes
+  useEffect(() => {
+    if (loadError) {
+      error('Failed to load aircraft', loadError);
+      setLoadError(null); // Clear error after showing
+    }
+  }, [loadError, error]);
 
   const filteredAircraft = aircraft.filter(plane => {
     const matchesSearch = 
       plane.registration_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      plane.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      plane.model_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       plane.manufacturer.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = selectedStatus === '' || plane.status === selectedStatus;
@@ -100,18 +113,18 @@ export const AdminAircraftPage: React.FC = () => {
 
   const handleDeleteAircraft = async (plane: AircraftWithDetails) => {
     try {
-      // In real app, this would call aircraftApi.delete(plane.aircraft_id)
+      await aircraftApi.delete(plane.aircraft_id);
       setAircraft(prev => prev.filter(a => a.aircraft_id !== plane.aircraft_id));
       success('Aircraft deleted', `Aircraft ${plane.registration_number} has been deleted`);
       setDeleteAircraft(null);
     } catch (err: any) {
-      error('Delete failed', err.message);
+      error('Delete failed', err.response?.data?.message || err.message);
     }
   };
 
   const handleStatusChange = async (plane: AircraftWithDetails, newStatus: AircraftStatus) => {
     try {
-      // In real app, this would call aircraftApi.update(plane.aircraft_id, { status: newStatus })
+      await aircraftApi.update(plane.aircraft_id, { status: newStatus });
       setAircraft(prev => prev.map(a => 
         a.aircraft_id === plane.aircraft_id 
           ? { ...a, status: newStatus }
@@ -119,7 +132,7 @@ export const AdminAircraftPage: React.FC = () => {
       ));
       success('Status updated', `Aircraft ${plane.registration_number} status updated to ${newStatus}`);
     } catch (err: any) {
-      error('Update failed', err.message);
+      error('Update failed', err.response?.data?.message || err.message);
     }
   };
 
@@ -144,10 +157,6 @@ export const AdminAircraftPage: React.FC = () => {
               Manage aircraft fleet, maintenance, and status
             </p>
           </div>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Aircraft
-          </Button>
         </div>
 
         {/* Stats Cards */}
@@ -244,7 +253,7 @@ export const AdminAircraftPage: React.FC = () => {
                       <h3 className="text-lg font-semibold">
                         {plane.registration_number}
                       </h3>
-                      <p className="text-sm text-gray-600">{plane.model}</p>
+                      <p className="text-sm text-gray-600">{plane.model_name}</p>
                       <p className="text-sm text-gray-500">{plane.manufacturer}</p>
                     </div>
                   </div>

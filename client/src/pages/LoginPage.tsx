@@ -1,30 +1,26 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, LoadingSpinner } from '../components/ui';
+import { Button, Input, Card, CardContent, CardHeader, CardTitle } from '../components/ui';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../components/ui/Notification';
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, LogIn, User, Shield, Settings } from 'lucide-react';
+import type { LoginCredentials } from '../types';
 
-interface LoginFormData {
-  email: string;
-  password: string;
-}
+type LoginFormData = LoginCredentials;
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { signIn } = useAuth();
   const { success, error } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const from = (location.state as any)?.from?.pathname || '/user/my-tickets';
-
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<LoginFormData>();
 
   const onSubmit = async (data: LoginFormData) => {
@@ -37,6 +33,8 @@ export const LoginPage: React.FC = () => {
         
         // Redirect based on user role
         const userRoles = result.user?.roles?.map(role => role.role_name) || [];
+        console.log('User roles:', userRoles);
+        
         if (userRoles.includes('admin') || userRoles.includes('operator')) {
           navigate('/admin', { replace: true });
         } else if (userRoles.includes('passenger')) {
@@ -52,6 +50,12 @@ export const LoginPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const quickLogin = (email: string, password: string, role: string) => {
+    setValue('email', email);
+    setValue('password', password);
+    console.log(`Quick login as ${role}: ${email}`);
   };
 
   return (
@@ -72,6 +76,40 @@ export const LoginPage: React.FC = () => {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        {/* Quick Login Buttons */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Quick Login (Development)</h3>
+          <div className="grid grid-cols-1 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => quickLogin('admin.manager@airport.com', 'password123', 'Admin')}
+              className="flex items-center justify-center"
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              Login as Admin
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => quickLogin('operator@airport.com', 'password123', 'Operator')}
+              className="flex items-center justify-center"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Login as Operator
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => quickLogin('john.doe@example.com', 'password123', 'Passenger')}
+              className="flex items-center justify-center"
+            >
+              <User className="h-4 w-4 mr-2" />
+              Login as Passenger
+            </Button>
+          </div>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
@@ -82,27 +120,16 @@ export const LoginPage: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700">
                   Email Address
                 </label>
-                <div className="mt-1 relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    {...register('email', {
-                      required: 'Email is required',
-                      pattern: {
-                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                        message: 'Invalid email address',
-                      },
-                    })}
-                    type="email"
-                    placeholder="john@example.com"
-                    className="pl-10"
-                    autoComplete="email"
-                  />
-                </div>
-                {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.email.message}
-                  </p>
-                )}
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  {...register('email', { required: 'Email is required' })}
+                  error={errors.email?.message}
+                  className="mt-1"
+                />
               </div>
 
               <div>
@@ -110,29 +137,28 @@ export const LoginPage: React.FC = () => {
                   Password
                 </label>
                 <div className="mt-1 relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    {...register('password', {
-                      required: 'Password is required',
-                    })}
+                    id="password"
+                    name="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter your password"
-                    className="pl-10 pr-10"
                     autoComplete="current-password"
+                    required
+                    {...register('password', { required: 'Password is required' })}
+                    error={errors.password?.message}
+                    className="pr-10"
                   />
                   <button
                     type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-gray-400" />
+                    )}
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.password.message}
-                  </p>
-                )}
               </div>
 
               <div className="flex items-center justify-between">
@@ -155,20 +181,17 @@ export const LoginPage: React.FC = () => {
                 </div>
               </div>
 
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full"
-              >
-                {isLoading ? (
-                  <>
-                    <LoadingSpinner size="sm" className="mr-2" />
-                    Signing in...
-                  </>
-                ) : (
-                  'Sign In'
-                )}
-              </Button>
+              <div>
+                <Button
+                  type="submit"
+                  className="w-full flex justify-center items-center"
+                  loading={isLoading}
+                  disabled={isLoading}
+                >
+                  <LogIn className="h-5 w-5 mr-2" />
+                  Sign in
+                </Button>
+              </div>
             </form>
 
             <div className="mt-6">
@@ -177,33 +200,12 @@ export const LoginPage: React.FC = () => {
                   <div className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Demo accounts</span>
+                  <span className="px-2 bg-white text-gray-500">Or continue with</span>
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-1 gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const demoCredentials = { email: 'admin.manager@airport.com', password: 'password123' };
-                    onSubmit(demoCredentials);
-                  }}
-                  disabled={isLoading}
-                  className="w-full"
-                >
-                  Demo Admin Account
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const demoCredentials = { email: 'john.doe@example.com', password: 'password123' };
-                    onSubmit(demoCredentials);
-                  }}
-                  disabled={isLoading}
-                  className="w-full"
-                >
-                  Demo Passenger Account
-                </Button>
+              <div className="mt-6 grid grid-cols-3 gap-3">
+                {/* Social login buttons can go here */}
               </div>
             </div>
           </CardContent>

@@ -346,6 +346,23 @@ export class FlightResponseDto {
   };
 }
 
+export class RegisterPassengerForFlightDto {
+  @Type(() => Number)
+  @IsNumber()
+  passenger_id: number;
+
+  @IsString()
+  seat_number: string;
+
+  @IsString()
+  class: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  user_id?: number;
+}
+
 export class FlightStatisticsResponseDto {
   period: string;
   total_flights: number;
